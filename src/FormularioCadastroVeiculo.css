@@ -1,0 +1,131 @@
+/* Fundo escuro com imagem repetida */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0B1021;
+  background-image: url('./assets/bg-whatsapp.png');
+  background-size: 300px;
+  background-repeat: repeat;
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* Container centralizado */
+.formulario-veiculo {
+  display: flex;
+  justify-content: center;
+  padding: 40px 16px;
+  min-height: 100vh;
+}
+
+/* Caixa do formulário */
+.formulario-box {
+  background-color: white;
+  padding: 32px;
+  border-radius: 12px;
+  max-width: 900px;
+  width: 100%;
+  box-shadow: 0 0 14px rgba(0, 0, 0, 0.3);
+}
+
+/* Título */
+.formulario-box h2 {
+  text-align: center;
+  margin-bottom: 12px;
+  color: #0B1021;
+}
+
+/* Bloco de dados do anunciante */
+.anunciante-info {
+  background-color: #f0f0f0;
+  padding: 10px 16px;
+  margin-bottom: 24px;
+  border-left: 5px solid #88fe03;
+  border-radius: 6px;
+  font-size: 15px;
+  color: #333;
+}
+
+.anunciante-info a {
+  color: #0B1021;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+/* Layout de grid 2 colunas */
+.formulario-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* Campo de texto longo ocupa 2 colunas */
+.formulario-box textarea {
+  grid-column: 1 / -1;
+  resize: vertical;
+}
+
+/* Estilo de campos */
+.formulario-box label {
+  font-weight: bold;
+  color: #0B1021;
+  display: block;
+  margin-top: 10px;
+}
+
+.formulario-box input,
+.formulario-box textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  margin-top: 6px;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+
+/* Lista de arquivos */
+.formulario-box ul {
+  list-style-type: disc;
+  padding-left: 20px;
+  margin-top: 10px;
+  color: #333;
+}
+
+/* Botões */
+.botoes {
+  margin-top: 30px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.botoes button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.botoes .enviar {
+  background-color: #88fe03;
+  color: #0B1021;
+}
+
+.botoes .cancelar {
+  background-color: #ccc;
+  color: #0B1021;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .formulario-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .formulario-box {
+    padding: 24px;
+  }
+}

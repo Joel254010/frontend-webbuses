@@ -1,0 +1,171 @@
+/* src/LoginAnunciante.css */
+
+.login-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  background-image: url('./assets/bg-whatsapp.png');
+  background-color: #0a0a0a;
+  background-size: 300px;
+  background-repeat: repeat;
+  color: white;
+  min-height: 100vh;
+}
+
+.login-box {
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 32px;
+  border-radius: 10px;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+
+.login-logo {
+  width: 140px;
+  margin-bottom: 20px;
+}
+
+.login-box h2 {
+  margin-bottom: 20px;
+  color: #2c3e50;
+}
+
+.login-box input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+.senha-container {
+  position: relative;
+}
+
+.senha-container input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.olho-senha {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  cursor: pointer;
+  font-size: 18px;
+  user-select: none;
+}
+
+.login-box button {
+  width: 100%;
+  padding: 12px;
+  background-color: #88fe03; /* verde WebBuses */
+  color: #000; /* contraste ideal para fundo claro */
+  font-weight: bold;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.login-box button:hover {
+  background-color: #88fe03;
+}
+
+.erro {
+  color: red;
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+.links-auxiliares {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.link-texto {
+  background: none;
+  border: none;
+  color: #27ae60;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.link-texto:hover {
+  color: #1c8050;
+}
+
+/* ✅ Estilos para SelecionarModeloOnibus.jsx */
+
+.grid-modelos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* duas colunas */
+  gap: 16px;
+}
+
+.card-opcao {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 14px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.card-opcao:hover {
+  border-color: #88fe03;
+}
+
+.card-opcao img {
+  width: 100%;
+  max-height: 100px;
+  object-fit: contain;
+  margin-bottom: 10px;
+}
+
+.card-opcao p {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #0B1021;
+}
+
+/* ✅ Estilos para FormularioCadastroVeiculo.jsx */
+
+.grid-formulario {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+  resize: vertical;
+}
+
+/* Responsivo: 1 coluna no mobile */
+@media (max-width: 600px) {
+  .grid-modelos {
+    grid-template-columns: 1fr;
+  }
+
+  .login-box {
+    max-width: 100%;
+    padding: 20px;
+  }
+}

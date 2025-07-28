@@ -1,24 +1,42 @@
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "./Home";
+import PaginaOnibus from "./PaginaOnibus";
+import LoginAnunciante from "./LoginAnunciante";
+import CadastroAnunciante from "./CadastroAnunciante";
+import PainelAnunciante from "./PainelAnunciante";
+import SelecionarModeloOnibus from "./SelecionarModeloOnibus";
+import FormularioCadastroVeiculo from "./FormularioCadastroVeiculo";
+import MeusAnuncios from "./MeusAnuncios";
+import EditarAnuncio from "./EditarAnuncio";
+import AdminLogin from "./AdminLogin";
+import PainelAdmin from "./PainelAdmin";
+import PagamentoAnuncio from "./PagamentoAnuncio";
+
+// ✅ NOVA IMPORTAÇÃO DA LISTAGEM POR MODELO
+import ListaPorModelo from "./ListaPorModelo";
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/onibus/:id" element={<PaginaOnibus />} />
+        <Route path="/login-anunciante" element={<LoginAnunciante />} />
+        <Route path="/cadastro-anunciante" element={<CadastroAnunciante />} />
+        <Route path="/painel-anunciante" element={<PainelAnunciante />} />
+        <Route path="/cadastrar-onibus" element={<SelecionarModeloOnibus />} />
+        <Route path="/cadastrar-onibus/:modelo/formulario" element={<FormularioCadastroVeiculo />} />
+        <Route path="/meus-anuncios" element={<MeusAnuncios />} />
+        <Route path="/editar-anuncio/:id" element={<EditarAnuncio />} />
+        <Route path="/pagamento-anuncio" element={<PagamentoAnuncio />} />
+        <Route path="/login-admin" element={<AdminLogin />} />
+        <Route path="/painel-admin" element={<PainelAdmin />} />
+
+        {/* ✅ NOVA ROTA PARA LISTAR POR MODELO */}
+        <Route path="/modelo/:slugModelo" element={<ListaPorModelo />} />
+      </Routes>
+    </Router>
   );
 }
 

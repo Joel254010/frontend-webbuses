@@ -1,0 +1,152 @@
+.pagina-onibus {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  background-image: url('./assets/bg-whatsapp.png');
+  background-color: #0a0a0a;
+  background-size: 300px;
+  background-repeat: repeat;
+  color: white;
+  min-height: 100vh;
+}
+
+.galeria {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.imagem-destaque {
+  max-width: 500px;      /* limita o tamanho total */
+  width: 100%;           /* ocupa a largura disponível */
+  height: auto;          /* mantém a proporção original */
+  object-fit: contain;   /* mostra toda a imagem sem cortes */
+  border-radius: 12px;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
+  margin: 0 auto;
+  display: block;
+}
+
+.miniaturas {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.miniatura {
+  width: 80px;
+  height: 60px;
+  object-fit: cover;
+  border: 2px solid white;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: 0.2s ease;
+}
+.miniatura:hover {
+  opacity: 1;
+}
+.miniatura.ativa {
+  border: 2px solid #88fe03;
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.detalhes {
+  margin-top: 16px;
+}
+
+.titulo {
+  font-size: 28px;
+  margin-bottom: 20px;
+  font-weight: 700;
+}
+
+.secao-titulo {
+  font-size: 20px;
+  color: #ddd;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #222;
+  padding-bottom: 6px;
+}
+
+.bloco-informacoes,
+.bloco-contato,
+.descricao-bloco {
+  background-color: #161616;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.grid-detalhes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.card-detalhe span {
+  font-size: 15px;
+  color: #eee;
+  background-color: #1f1f1f;
+  padding: 12px 14px;
+  border-radius: 8px;
+  line-height: 1.5;
+  display: block;
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* Melhor visual para campos técnicos longos */
+.card-detalhe span strong {
+  color: #88fe03;
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+/* Título grande */
+.titulo {
+  font-size: 30px;
+  margin-bottom: 20px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 1px 1px 3px #000;
+}
+
+/* Seções com borda inferior e destaque */
+.secao-titulo {
+  font-size: 22px;
+  color: #88fe03;
+  margin-bottom: 14px;
+  border-bottom: 2px solid #88fe03;
+  padding-bottom: 6px;
+}
+
+/* Rodapé dos blocos com padding adicional */
+.bloco-informacoes,
+.bloco-contato,
+.descricao-bloco {
+  background-color: #161616;
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 28px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.4);
+}
+
+/* Voltar refinado */
+.btn-voltar {
+  margin-top: 12px;
+  background-color: #222;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: 0.2s ease;
+}
+.btn-voltar:hover {
+  background-color: #333;
+}

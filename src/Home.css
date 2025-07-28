@@ -1,0 +1,352 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0a0a0a;
+  background-image: url('./assets/bg-whatsapp.png');
+  background-repeat: repeat;
+  background-size: 300px;
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* Container geral */
+.home-container {
+  background-color: transparent;
+  color: #1a1a1a;
+}
+
+/* Topo com logo, barra de pesquisa e botão */
+.home-header {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  background-color: #88fe03;
+  color: white;
+  padding: 16px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.barra-pesquisa-container {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.logo-img {
+  height: 96px;
+  object-fit: contain;
+  margin-top: 4px;
+}
+
+.barra-pesquisa {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  padding: 6px 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.input-pesquisa {
+  border: none;
+  outline: none;
+  font-size: 14px;
+  padding: 6px;
+  font-family: 'Montserrat', sans-serif;
+  width: 180px;
+  color: #333;
+}
+
+.filtro-pesquisa {
+  margin-left: 10px;
+  padding: 6px;
+  border: none;
+  font-size: 14px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
+  color: #333;
+}
+
+.botao-lupa {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  margin-left: 10px;
+  color: #333;
+}
+
+.botao-anunciar {
+  background-color: #333;
+  color: white;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-family: 'Montserrat', sans-serif;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.botao-anunciar:hover {
+  background-color: #1f1f1f;
+  transform: scale(1.03);
+}
+
+/* Menu de carrocerias */
+.menu-carrocerias {
+  background-color: #0b0b0b;
+  padding: 12px 24px;
+  border-top: 1px solid #222;
+  border-bottom: 1px solid #222;
+}
+
+.menu-titulo {
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 6px;
+  font-weight: 300;
+}
+
+.menu-opcoes {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.menu-opcoes span {
+  font-size: 14px;
+  color: #fff;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.menu-opcoes span:hover {
+  background-color: #88fe03;
+  color: #1a1a1a;
+}
+
+/* Hero Banner */
+.hero {
+  background-image: url('https://images.unsplash.com/photo-1615562510269-3fa64a22111d');
+  background-size: cover;
+  background-position: center;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-align: center;
+  padding: 20px;
+}
+
+.hero-content {
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 20px 30px;
+  border-radius: 10px;
+  max-width: 800px;
+}
+
+.hero-content h2 {
+  font-size: 26px;
+  margin-bottom: 10px;
+}
+
+.hero-content p {
+  font-size: 15px;
+}
+
+/* Área de anúncios */
+.anuncios {
+  padding: 40px 20px;
+}
+
+.anuncios h2 {
+  font-size: 22px;
+  color: #ffffff;
+  margin-bottom: 20px;
+}
+
+.grid-anuncios {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 0 16px;
+}
+
+.card-anuncio {
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  margin: 0 auto;
+  transition: transform 0.2s ease;
+}
+
+.card-anuncio img.imagem-capa {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  object-position: center;
+}
+
+.card-anuncio h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #222;
+  margin: 12px;
+}
+
+.card-anuncio p {
+  font-size: 18px;
+  color: #007800;
+  font-weight: 700;
+  margin: 0 12px 6px;
+}
+
+.card-anuncio span {
+  font-size: 13px;
+  color: #444;
+  margin: 0 12px 4px;
+  display: block;
+}
+
+.botao-saiba-mais {
+  margin: 12px;
+  align-self: start;
+  background-color: #88fe03;
+  color: #1a1a1a;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.botao-saiba-mais:hover {
+  background-color: #6edb00;
+}
+
+/* Rodapé */
+.home-footer {
+  background-color: #88fe03;
+  color: #1a1a1a;
+  padding: 20px;
+  text-align: center;
+  margin-top: 40px;
+  font-size: 14px;
+  font-weight: bold;
+  border-top: 2px solid #86e200;
+}
+
+/* Carrossel */
+.carrossel {
+  width: 100%;
+  overflow: hidden;
+  margin-top: 0;
+}
+
+.slides {
+  position: relative;
+  width: 100%;
+  height: auto;
+}
+
+.slide {
+  display: none;
+  width: 100%;
+  max-height: 400px;
+  object-fit: contain; /* ✅ mostra imagem inteira */
+  background-color: #88fe03; /* ✅ igual ao fundo do banner */
+  object-position: center;
+  border-bottom: 3px solid #86e200;
+}
+
+.slide.ativo {
+  display: block;
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Paginação */
+.paginacao {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.paginacao button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background-color: #222;
+  color: white;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.paginacao button:hover {
+  background-color: #88fe03;
+  color: #1a1a1a;
+}
+
+.paginacao .pagina-ativa {
+  background-color: #88fe03;
+  color: #1a1a1a;
+}
+
+.acoes-anuncio {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 12px;
+}
+
+.botao-curtir,
+.botao-compartilhar {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  transition: transform 0.2s;
+}
+
+.botao-curtir:hover,
+.botao-compartilhar:hover {
+  transform: scale(1.1);
+}
+
+.botao-curtir.curtido {
+  color: red;
+}
