@@ -407,141 +407,72 @@ body {
   }
 }
 
-@media (max-width: 768px) {
-  .home-header {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    flex-wrap: wrap;
-  }
+.card-anuncio {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  align-items: flex-start;
+  width: 100%;
+  background-color: white;
+  border-radius: 10px;
+}
 
-  .logo-img {
-    height: 60px;
-  }
+.card-anuncio img.imagem-capa {
+  width: 100%;
+  height: auto;
+  max-height: 180px;
+  border-radius: 8px;
+  object-fit: cover;
+}
 
-  .botao-anunciar {
-    padding: 6px 10px;
-    font-size: 13px;
-    border-radius: 6px;
-    width: auto;
-    white-space: nowrap;
-  }
+.card-anuncio h3 {
+  font-size: 15px;
+  margin: 0 0 4px;
+}
 
-  .barra-pesquisa-container {
-    flex-direction: column;
-    width: 100%;
-    margin-top: 10px;
-  }
+.card-anuncio p {
+  font-size: 14px;
+  color: #1a1a1a;
+  margin: 2px 0;
+}
 
-  .input-pesquisa,
-  .filtro-pesquisa {
-    font-size: 13px;
-    width: 100%;
-  }
+.card-anuncio span {
+  font-size: 13px;
+  color: #666;
+}
 
-  .menu-carrocerias {
-    padding: 10px 16px;
-  }
+.card-anuncio .localizacao {
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #555;
+}
 
-  .menu-titulo {
-    font-size: 13px;
-    color: #ccc;
-  }
+.botoes-acao-mobile {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
 
-  .menu-opcoes span {
-    font-size: 13px;
-    padding: 6px;
-    background-color: #111;
-    border: 1px solid #333;
-    border-radius: 4px;
-  }
+.botao-saiba-mais {
+  flex: 1;
+  font-size: 13px;
+  padding: 8px 0;
+  background-color: #88fe03;
+  color: black;
+  text-align: center;
+  border-radius: 6px;
+  font-weight: bold;
+}
 
-  .hero {
-    height: auto;
-    padding: 16px;
-  }
-
-  .hero-content h2 {
-    font-size: 18px;
-    font-weight: 500;
-  }
-
-  .hero-content p {
-    font-size: 13px;
-  }
-
-  .slides img.slide {
-    max-height: 260px;
-  }
-
-  .anuncios h2 {
-    font-size: 16px;
-    font-weight: 500;
-  }
-
-  .card-anuncio {
-    display: flex;
-    flex-direction: row;
-    gap: 12px;
-    padding: 12px;
-    align-items: flex-start;
-    width: 100%;
-  }
-
-  .card-anuncio img.imagem-capa {
-    width: 100px;
-    height: 70px;
-    border-radius: 6px;
-    object-fit: cover;
-    flex-shrink: 0;
-  }
-
-  .card-anuncio .detalhes-anuncio {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    flex: 1;
-  }
-
-  .card-anuncio h3 {
-    font-size: 14px;
-    margin: 0 0 4px;
-  }
-
-  .card-anuncio p {
-    font-size: 14px;
-    color: #1a1a1a;
-    margin: 2px 0;
-  }
-
-  .card-anuncio span {
-    font-size: 12px;
-    color: #666;
-  }
-
-  .acoes-anuncio {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 8px;
-    align-items: center;
-  }
-
-  .botao-saiba-mais {
-    font-size: 13px;
-    padding: 6px 10px;
-  }
-
-  .botao-curtir,
-  .botao-compartilhar {
-    font-size: 13px;
-    padding: 6px 8px;
-  }
-
-  .home-footer {
-    font-size: 12px;
-    padding: 16px;
-  }
+.botao-curtir, .botao-compartilhar {
+  font-size: 14px;
+  color: #111;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
