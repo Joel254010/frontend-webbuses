@@ -8,6 +8,7 @@ const PaginaOnibus = () => {
   const { id } = useParams();
   const [onibus, setOnibus] = useState(null);
   const [imagemAtual, setImagemAtual] = useState("");
+  const [loading, setLoading] = useState(true); // ✅ novo estado
 
   useEffect(() => {
     const buscarAnuncio = async () => {
@@ -21,11 +22,23 @@ const PaginaOnibus = () => {
       } catch (erro) {
         console.error("❌ Erro ao carregar anúncio:", erro);
         setOnibus(null);
+      } finally {
+        setLoading(false); // ✅ garantir que o carregamento termina
       }
     };
 
     buscarAnuncio();
   }, [id]);
+
+  if (loading) {
+    return (
+      <div className="pagina-onibus">
+        <p style={{ color: "white", textAlign: "center", marginTop: "60px" }}>
+          ⏳ Carregando anúncio...
+        </p>
+      </div>
+    );
+  }
 
   if (!onibus) {
     return (
@@ -79,11 +92,11 @@ const PaginaOnibus = () => {
 
         <section className="bloco-contato">
           <p className="preco">
-  💰 {Number(onibus.valor).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  })}
-</p>
+            💰 {Number(onibus.valor).toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            })}
+          </p>
           <p className="anunciante">📞 Anunciante: {onibus.nomeAnunciante}</p>
           <a
             href={onibus.anunciante}
@@ -97,7 +110,15 @@ const PaginaOnibus = () => {
 
         <section className="descricao-bloco">
           <h2 className="secao-titulo">📝 Descrição do anúncio</h2>
-          <p>{onibus.descricao}</p>
+          <p>
+  {onibus.descricao.split("\n").map((linha, idx) => (
+    <span key={idx}>
+      {linha}
+      <br />
+    </span>
+  ))}
+</p>
+
         </section>
 
         <button onClick={() => window.history.back()} className="btn-voltar">
