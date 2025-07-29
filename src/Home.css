@@ -350,3 +350,59 @@ body {
 .botao-curtir.curtido {
   color: red;
 }
+
+@media (max-width: 768px) {
+  .home-header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px 16px;
+  }
+
+  .barra-pesquisa-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .input-pesquisa {
+    width: 100%;
+  }
+
+  .grid-anuncios {
+    grid-template-columns: 1fr; /* Força uma coluna por linha */
+    padding: 0 10px;
+  }
+
+  .card-anuncio {
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .card-anuncio img.imagem-capa {
+    height: auto;
+    max-height: 220px;
+  }
+
+  .hero-content h2 {
+    font-size: 20px;
+  }
+
+  .hero-content p {
+    font-size: 14px;
+  }
+
+  .botao-anunciar {
+    width: 100%;
+    text-align: center;
+  }
+
+  .menu-opcoes {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .menu-opcoes span {
+    width: 100%;
+  }
+}
