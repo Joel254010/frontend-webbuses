@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import './Home.css';
-import logoWebBuses from './assets/logo-webbuses.png';
-import banner1 from './assets/banner1.png';
-import banner2 from './assets/banner2.png';
-import { API_URL } from './config';
+import "./Home.css";
+import logoWebBuses from "./assets/logo-webbuses.png";
+import banner1 from "./assets/banner1.png";
+import banner2 from "./assets/banner2.png";
+import { API_URL } from "./config";
 
 function removerAcentos(str) {
-  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
 function Home() {
@@ -75,12 +75,12 @@ function Home() {
   };
 
   useEffect(() => {
-    const slides = document.querySelectorAll('.slide');
+    const slides = document.querySelectorAll(".slide");
     let index = 0;
     const intervalo = setInterval(() => {
-      slides.forEach(slide => slide.classList.remove('ativo'));
+      slides.forEach(slide => slide.classList.remove("ativo"));
       index = (index + 1) % slides.length;
-      slides[index].classList.add('ativo');
+      slides[index].classList.add("ativo");
     }, 3000);
     return () => clearInterval(intervalo);
   }, []);
@@ -88,15 +88,27 @@ function Home() {
   const [curtidas, setCurtidas] = useState({});
   const [curtido, setCurtido] = useState({});
 
+  useEffect(() => {
+    const curtidasSalvas = JSON.parse(localStorage.getItem("curtidas_webbuses")) || {};
+    setCurtido(curtidasSalvas);
+  }, []);
+
   const handleCurtir = (id) => {
+    const curtidasSalvas = JSON.parse(localStorage.getItem("curtidas_webbuses")) || {};
+
+    if (curtidasSalvas[id]) {
+      alert("Você já curtiu esse anúncio.");
+      return;
+    }
+
     setCurtidas((prev) => ({
       ...prev,
-      [id]: (prev[id] || 0) + (curtido[id] ? -1 : 1),
+      [id]: (prev[id] || 0) + 1,
     }));
-    setCurtido((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
+
+    const atualizado = { ...curtidasSalvas, [id]: true };
+    setCurtido(atualizado);
+    localStorage.setItem("curtidas_webbuses", JSON.stringify(atualizado));
   };
 
   const handleCompartilhar = (id) => {
@@ -171,60 +183,49 @@ function Home() {
           <p>Venda e compre ônibus e utilitários com segurança e agilidade.</p>
         </div>
       </section>
-
+      
       <main className="anuncios">
         <h2>Últimos anúncios</h2>
-
-        {anunciosExibidos.length === 0 ? (
-          <p style={{ textAlign: "center", marginTop: 20 }}>
-            Nenhum anúncio encontrado.
-          </p>
-        ) : (
-          <div className="grid-anuncios">
-            {anunciosExibidos.map((anuncio) => (
-              <div className="card-anuncio" key={anuncio._id || anuncio.id}>
-                <img
-                  src={
-                    anuncio.fotoCapaUrl ||
-                    (anuncio.imagens?.length ? anuncio.imagens[0] : "")
-                  }
-                  alt={anuncio.modeloCarroceria}
-                  className="imagem-capa"
-                />
-                <div className="info-anuncio">
-                  <h3>{`${anuncio.fabricanteCarroceria || ''} ${anuncio.modeloCarroceria || anuncio.modelo}`}</h3>
-                  <p className="valor">{Number(anuncio.valor).toLocaleString("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  })}</p>
-                  <span>{anuncio.kilometragem || "—"} Km</span><br />
-                  <span>
-                    {anuncio.localizacao
-                      ? `${anuncio.localizacao.cidade} - ${anuncio.localizacao.estado}`
-                      : "Localização não informada"}
-                  </span>
-                  <div className="acoes-anuncio">
-                    <Link to={`/onibus/${anuncio._id || anuncio.id}`}>
-                      <button className="botao-saiba-mais">Saiba Mais</button>
-                    </Link>
-                    <button
-                      className={`botao-curtir ${curtido[anuncio._id] ? "curtido" : ""}`}
-                      onClick={() => handleCurtir(anuncio._id)}
-                    >
-                      ❤️ {curtidas[anuncio._id] || 0}
-                    </button>
-                    <button
-                      className="botao-compartilhar"
-                      onClick={() => handleCompartilhar(anuncio._id)}
-                    >
-                      🔗 Compartilhar
-                    </button>
+        <div className="grid-anuncios">
+          {anunciosExibidos.map((anuncio) => (
+            <div className="card-anuncio" key={anuncio._id}>
+              <img src={anuncio.imagens?.[0] || ""} className="imagem-capa" alt={anuncio.modeloCarroceria} />
+              <div className="info-anuncio">
+                <h3>{anuncio.fabricanteCarroceria} {anuncio.modeloCarroceria}</h3>
+                <p className="valor">{Number(anuncio.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+                <span>{anuncio.kilometragem} km</span><br />
+                <span>{anuncio.localizacao?.cidade} - {anuncio.localizacao?.estado}</span>
+                <div className="acoes-anuncio">
+                  <Link to={`/onibus/${anuncio._id}`}>
+                    <button className="botao-saiba-mais">Saiba Mais</button>
+                  </Link>
+                  <button
+                    className={`botao-curtir ${curtido[anuncio._id] ? "curtido" : ""}`}
+                    onClick={() => handleCurtir(anuncio._id)}
+                    disabled={!!curtido[anuncio._id]}
+                    style={{
+                      backgroundColor: curtido[anuncio._id] ? "#ff3366" : "#ffffff",
+                      color: curtido[anuncio._id] ? "#fff" : "#111",
+                      border: "1px solid #ccc",
+                      borderRadius: "20px",
+                      padding: "6px 12px",
+                      fontWeight: "bold",
+                      cursor: curtido[anuncio._id] ? "not-allowed" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px"
+                    }}
+                  >
+                    ❤️ {curtidas[anuncio._id] || 0}
+                  </button>
+                  <button className="botao-compartilhar" onClick={() => handleCompartilhar(anuncio._id)}>
+                    🔗 Compartilhar
+                  </button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-        )}
 
         {totalPaginas > 1 && (
           <div className="paginacao">
