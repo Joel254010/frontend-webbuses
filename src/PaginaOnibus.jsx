@@ -1,14 +1,15 @@
 // src/PaginaOnibus.jsx
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom"; // ✅ adiciona useNavigate
 import "./PaginaOnibus.css";
 import { API_URL } from "./config";
 
 const PaginaOnibus = () => {
   const { id } = useParams();
+  const navigate = useNavigate(); // ✅ necessário para fallback do botão Voltar
   const [onibus, setOnibus] = useState(null);
   const [imagemAtual, setImagemAtual] = useState("");
-  const [loading, setLoading] = useState(true); // ✅ novo estado
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const buscarAnuncio = async () => {
@@ -23,12 +24,20 @@ const PaginaOnibus = () => {
         console.error("❌ Erro ao carregar anúncio:", erro);
         setOnibus(null);
       } finally {
-        setLoading(false); // ✅ garantir que o carregamento termina
+        setLoading(false);
       }
     };
 
     buscarAnuncio();
   }, [id]);
+
+  const handleVoltar = () => {
+    if (window.history.length > 1) {
+      navigate(-1); // volta se houver histórico
+    } else {
+      navigate("/"); // fallback para a Home
+    }
+  };
 
   if (loading) {
     return (
@@ -111,17 +120,16 @@ const PaginaOnibus = () => {
         <section className="descricao-bloco">
           <h2 className="secao-titulo">📝 Descrição do anúncio</h2>
           <p>
-  {onibus.descricao.split("\n").map((linha, idx) => (
-    <span key={idx}>
-      {linha}
-      <br />
-    </span>
-  ))}
-</p>
-
+            {onibus.descricao.split("\n").map((linha, idx) => (
+              <span key={idx}>
+                {linha}
+                <br />
+              </span>
+            ))}
+          </p>
         </section>
 
-        <button onClick={() => window.history.back()} className="btn-voltar">
+        <button onClick={handleVoltar} className="btn-voltar">
           ← Voltar
         </button>
       </div>
