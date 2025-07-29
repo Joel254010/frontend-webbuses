@@ -24,9 +24,7 @@ function Home() {
       try {
         const resposta = await fetch(`${API_URL}/anuncios`);
         const todos = await resposta.json();
-        const aprovados = todos
-          .filter(anuncio => anuncio.status === "aprovado")
-          .reverse(); // Mostra os mais recentes primeiro
+        const aprovados = todos.filter(anuncio => anuncio.status === "aprovado").reverse();
         setTodosAnuncios(aprovados);
         setAnuncios(aprovados);
       } catch (erro) {
@@ -104,17 +102,12 @@ function Home() {
   const handleCompartilhar = (id) => {
     const link = `${window.location.origin}/onibus/${id}`;
     const mensagem = encodeURIComponent(`🚍 Veja esse ônibus à venda: ${link}`);
-    const opcoes = `
-🔗 Compartilhar Anúncio:
-
-✅ Copiar Link
-✅ Enviar por WhatsApp
-✅ Publicar no Facebook
-    `;
-    const acao = window.prompt(opcoes + `\nDigite: 1, 2 ou 3`);
+    const acao = window.prompt(
+      `🔗 Compartilhar Anúncio:\n\n1️⃣ Copiar Link\n2️⃣ Enviar por WhatsApp\n3️⃣ Publicar no Facebook\n\nDigite 1, 2 ou 3`
+    );
     if (acao === "1") {
       navigator.clipboard.writeText(link);
-      alert("✅ Link copiado para área de transferência!");
+      alert("✅ Link copiado!");
     } else if (acao === "2") {
       window.open(`https://wa.me/?text=${mensagem}`, "_blank");
     } else if (acao === "3") {
@@ -155,8 +148,8 @@ function Home() {
           <span onClick={() => setFiltroModelo("4x2")}>Ônibus 4x2</span>
           <span onClick={() => setFiltroModelo("6x2")}>Ônibus 6x2</span>
           <span onClick={() => setFiltroModelo("urbano")}>Ônibus Urbano</span>
-          <span onClick={() => setFiltroModelo("lowdriver")}>Low Driver (6x2 e 8x2)</span>
-          <span onClick={() => setFiltroModelo("doubledecker")}>Double Decker (6x2 e 8x2)</span>
+          <span onClick={() => setFiltroModelo("lowdriver")}>Low Driver</span>
+          <span onClick={() => setFiltroModelo("doubledecker")}>Double Decker</span>
         </div>
         {filtroModelo && (
           <p style={{ color: "#fff", marginTop: 10, cursor: "pointer" }} onClick={() => setFiltroModelo(null)}>
@@ -193,41 +186,40 @@ function Home() {
                 <img
                   src={
                     anuncio.fotoCapaUrl ||
-                    (anuncio.imagens && anuncio.imagens.length > 0 && anuncio.imagens[0]) ||
-                    ""
+                    (anuncio.imagens?.length ? anuncio.imagens[0] : "")
                   }
                   alt={anuncio.modeloCarroceria}
                   className="imagem-capa"
                 />
-                <h3>{`${anuncio.fabricanteCarroceria || ''} ${anuncio.modeloCarroceria || anuncio.modelo}`}</h3>
-                <p>
-                  {Number(anuncio.valor).toLocaleString("pt-BR", {
+                <div className="info-anuncio">
+                  <h3>{`${anuncio.fabricanteCarroceria || ''} ${anuncio.modeloCarroceria || anuncio.modelo}`}</h3>
+                  <p className="valor">{Number(anuncio.valor).toLocaleString("pt-BR", {
                     style: "currency",
                     currency: "BRL",
-                  })}
-                </p>
-                <span>{anuncio.kilometragem || "—"} Km</span><br />
-                <span>
-                  {anuncio.localizacao
-                    ? `${anuncio.localizacao.cidade} - ${anuncio.localizacao.estado}`
-                    : "Localização não informada"}
-                </span>
-                <div className="acoes-anuncio">
-                  <Link to={`/onibus/${anuncio._id || anuncio.id}`}>
-                    <button className="botao-saiba-mais">Saiba Mais</button>
-                  </Link>
-                  <button
-                    className={`botao-curtir ${curtido[anuncio._id] ? "curtido" : ""}`}
-                    onClick={() => handleCurtir(anuncio._id)}
-                  >
-                    ❤️ {curtidas[anuncio._id] || 0}
-                  </button>
-                  <button
-                    className="botao-compartilhar"
-                    onClick={() => handleCompartilhar(anuncio._id)}
-                  >
-                    🔗 Compartilhar
-                  </button>
+                  })}</p>
+                  <span>{anuncio.kilometragem || "—"} Km</span><br />
+                  <span>
+                    {anuncio.localizacao
+                      ? `${anuncio.localizacao.cidade} - ${anuncio.localizacao.estado}`
+                      : "Localização não informada"}
+                  </span>
+                  <div className="acoes-anuncio">
+                    <Link to={`/onibus/${anuncio._id || anuncio.id}`}>
+                      <button className="botao-saiba-mais">Saiba Mais</button>
+                    </Link>
+                    <button
+                      className={`botao-curtir ${curtido[anuncio._id] ? "curtido" : ""}`}
+                      onClick={() => handleCurtir(anuncio._id)}
+                    >
+                      ❤️ {curtidas[anuncio._id] || 0}
+                    </button>
+                    <button
+                      className="botao-compartilhar"
+                      onClick={() => handleCompartilhar(anuncio._id)}
+                    >
+                      🔗 Compartilhar
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -258,4 +250,3 @@ function Home() {
 }
 
 export default Home;
-
