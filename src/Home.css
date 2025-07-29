@@ -376,50 +376,84 @@ body {
   }
 
   .card-anuncio {
-    width: 100%;
-    padding: 10px;
+    background: #ffffff;
     border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin: 0 auto;
+    transition: transform 0.2s ease;
   }
 
   .card-anuncio img.imagem-capa {
-    height: 200px;
-    border-radius: 8px;
+    width: 100%;
+    height: 220px;
     object-fit: cover;
+    object-position: center;
+    border-radius: 8px;
   }
 
   .card-anuncio h3 {
     font-size: 15px;
-    margin: 8px 0 4px;
+    font-weight: 700;
+    color: #222;
+    margin: 10px 12px 4px;
   }
 
   .card-anuncio p {
     font-size: 16px;
-    margin: 2px 0;
+    color: #007800;
+    font-weight: 700;
+    margin: 0 12px 6px;
   }
 
   .card-anuncio span {
     font-size: 13px;
+    color: #444;
+    margin: 0 12px 4px;
+    display: block;
   }
 
   .card-anuncio .localizacao {
-    font-size: 13px;
     margin-bottom: 8px;
+    font-size: 13px;
+    color: #555;
   }
 
   .botoes-acao-mobile {
-    flex-direction: row;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
     gap: 10px;
+    flex-wrap: wrap;
+    margin: 10px 12px 0;
   }
 
   .botao-saiba-mais {
-    font-size: 13px;
-    padding: 6px 0;
     flex: 1;
+    font-size: 13px;
+    padding: 8px 0;
+    background-color: #88fe03;
+    color: black;
+    text-align: center;
+    border-radius: 6px;
+    font-weight: bold;
+    border: none;
   }
 
-  .botao-curtir, .botao-compartilhar {
+  .botao-curtir,
+  .botao-compartilhar {
     font-size: 13px;
+    color: #111;
+    display: flex;
+    align-items: center;
     gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
   }
 
   .hero-content h2 {
@@ -446,81 +480,4 @@ body {
     width: 100%;
     font-size: 13px;
   }
-
-  /* Correção final para manter cards retrato */
-.card-anuncio {
-  background: #ffffff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-  display: flex;
-  flex-direction: column;
-  width: 360px;
-  margin: 0 auto;
-  transition: transform 0.2s ease;
 }
-
-.card-anuncio img.imagem-capa {
-  width: 100%;
-  height: 280px;
-  object-fit: cover;
-  object-position: center;
-}
-
-.card-anuncio h3 {
-  font-size: 16px;
-  font-weight: 700;
-  color: #222;
-  margin: 12px;
-}
-
-.card-anuncio p {
-  font-size: 18px;
-  color: #007800;
-  font-weight: 700;
-  margin: 0 12px 6px;
-}
-
-.card-anuncio span {
-  font-size: 13px;
-  color: #444;
-  margin: 0 12px 4px;
-  display: block;
-}
-
-.card-anuncio .localizacao {
-  margin-bottom: 8px;
-  font-size: 13px;
-  color: #555;
-}
-
-.botoes-acao-mobile {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-
-.botao-saiba-mais {
-  flex: 1;
-  font-size: 13px;
-  padding: 8px 0;
-  background-color: #88fe03;
-  color: black;
-  text-align: center;
-  border-radius: 6px;
-  font-weight: bold;
-}
-
-.botao-curtir, .botao-compartilhar {
-  font-size: 14px;
-  color: #111;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-}
-
