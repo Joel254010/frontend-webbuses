@@ -1,5 +1,4 @@
-/* src/LoginAnunciante.css */
-
+/* Estilo Geral */
 .login-page {
   display: flex;
   flex-direction: column;
@@ -65,16 +64,17 @@
 .login-box button {
   width: 100%;
   padding: 12px;
-  background-color: #88fe03; /* verde WebBuses */
-  color: #000; /* contraste ideal para fundo claro */
+  background-color: #88fe03;
+  color: #000;
   font-weight: bold;
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  font-size: 16px;
 }
 
 .login-box button:hover {
-  background-color: #88fe03;
+  background-color: #76e003;
 }
 
 .erro {
@@ -104,12 +104,54 @@
   color: #1c8050;
 }
 
-/* ✅ Estilos para SelecionarModeloOnibus.jsx */
+/* 📱 Responsivo: Mobile aprimorado */
+@media (max-width: 600px) {
+  .login-page {
+    padding: 16px;
+  }
+
+  .login-logo {
+    width: 120px;
+  }
+
+  .login-box {
+    padding: 20px;
+    max-width: 100%;
+    box-shadow: none;
+    border-radius: 8px;
+  }
+
+  .login-box h2 {
+    font-size: 20px;
+  }
+
+  .login-box input {
+    font-size: 15px;
+    padding: 10px;
+  }
+
+  .login-box button {
+    padding: 12px;
+    font-size: 15px;
+  }
+
+  .link-texto {
+    font-size: 13px;
+  }
+}
+
+/* ✅ Reaproveitamento para outras telas */
 
 .grid-modelos {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* duas colunas */
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .grid-modelos {
+    grid-template-columns: 1fr;
+  }
 }
 
 .card-opcao {
@@ -140,8 +182,7 @@
   color: #0B1021;
 }
 
-/* ✅ Estilos para FormularioCadastroVeiculo.jsx */
-
+/* Estilos para formulário de cadastro de veículo */
 .grid-formulario {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -156,16 +197,4 @@ textarea {
   border: 1px solid #ccc;
   font-size: 15px;
   resize: vertical;
-}
-
-/* Responsivo: 1 coluna no mobile */
-@media (max-width: 600px) {
-  .grid-modelos {
-    grid-template-columns: 1fr;
-  }
-
-  .login-box {
-    max-width: 100%;
-    padding: 20px;
-  }
 }

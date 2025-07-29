@@ -165,3 +165,99 @@
     font-size: 16px;
   }
 }
+
+@media (min-width: 769px) {
+  .pagina-onibus {
+    padding: 24px;
+  }
+
+  .imagem-destaque {
+    max-width: 600px;
+    height: auto;
+  }
+
+  .miniatura {
+    width: 80px;
+    height: 60px;
+  }
+
+  .titulo {
+    font-size: 30px;
+    text-align: left;
+  }
+
+  .secao-titulo {
+    font-size: 22px;
+    text-align: left;
+  }
+
+  .bloco-informacoes,
+  .bloco-contato,
+  .descricao-bloco {
+    padding: 24px;
+  }
+
+  .grid-detalhes {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  .btn-voltar {
+    width: auto;
+    padding: 12px 24px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .pagina-onibus {
+    padding: 16px;
+  }
+
+  .imagem-destaque {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .miniaturas {
+    gap: 8px;
+  }
+
+  .miniatura {
+    width: 60px;
+    height: 45px;
+  }
+
+  .titulo {
+    font-size: 22px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .secao-titulo {
+    font-size: 18px;
+    text-align: center;
+  }
+
+  .bloco-informacoes,
+  .bloco-contato,
+  .descricao-bloco {
+    padding: 16px;
+  }
+
+  .grid-detalhes {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .card-detalhe span {
+    font-size: 14px;
+  }
+
+  .btn-voltar {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    margin-top: 20px;
+  }
+}
