@@ -406,3 +406,118 @@ body {
     width: 100%;
   }
 }
+
+@media (max-width: 768px) {
+  .home-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .logo-img {
+    height: 60px;
+  }
+
+  .botao-anunciar {
+    padding: 6px 10px;
+    font-size: 13px;
+    border-radius: 6px;
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .barra-pesquisa-container {
+    flex-direction: column;
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .input-pesquisa, .filtro-pesquisa {
+    font-size: 13px;
+    width: 100%;
+  }
+
+  .menu-carrocerias {
+    padding: 10px 16px;
+  }
+
+  .menu-titulo {
+    font-size: 13px;
+    color: #ccc;
+  }
+
+  .menu-opcoes span {
+    font-size: 13px;
+    padding: 6px;
+    background-color: #111;
+    border: 1px solid #333;
+    border-radius: 4px;
+  }
+
+  .hero {
+    height: auto;
+    padding: 16px;
+  }
+
+  .hero-content h2 {
+    font-size: 18px;
+    font-weight: 500;
+  }
+
+  .hero-content p {
+    font-size: 13px;
+  }
+
+  .slides img.slide {
+    max-height: 260px;
+  }
+
+  .anuncios h2 {
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .card-anuncio {
+    width: 100%;
+    flex-direction: row;
+    gap: 12px;
+    padding: 12px;
+    align-items: center;
+    height: auto;
+  }
+
+  .card-anuncio img.imagem-capa {
+    width: 100px;
+    height: 70px;
+    border-radius: 6px;
+    object-fit: cover;
+  }
+
+  .card-anuncio h3 {
+    font-size: 14px;
+    margin: 0;
+  }
+
+  .card-anuncio p {
+    font-size: 15px;
+    color: #1a1a1a;
+    margin: 4px 0;
+  }
+
+  .card-anuncio span {
+    font-size: 12px;
+    color: #666;
+  }
+
+  .botao-saiba-mais {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+
+  .home-footer {
+    font-size: 12px;
+    padding: 16px;
+  }
+}
