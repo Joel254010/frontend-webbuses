@@ -361,55 +361,93 @@ body {
   .barra-pesquisa-container {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
   }
 
   .input-pesquisa {
     width: 100%;
+    font-size: 13px;
   }
 
   .grid-anuncios {
-    grid-template-columns: 1fr; /* Força uma coluna por linha */
+    grid-template-columns: 1fr;
     padding: 0 10px;
   }
 
   .card-anuncio {
     width: 100%;
-    margin: 0 auto;
+    padding: 10px;
+    border-radius: 10px;
   }
 
   .card-anuncio img.imagem-capa {
-    width: 100%;
-    height: 280px;
+    height: 200px;
+    border-radius: 8px;
     object-fit: cover;
-    object-position: center;
+  }
+
+  .card-anuncio h3 {
+    font-size: 15px;
+    margin: 8px 0 4px;
+  }
+
+  .card-anuncio p {
+    font-size: 16px;
+    margin: 2px 0;
+  }
+
+  .card-anuncio span {
+    font-size: 13px;
+  }
+
+  .card-anuncio .localizacao {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .botoes-acao-mobile {
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .botao-saiba-mais {
+    font-size: 13px;
+    padding: 6px 0;
+    flex: 1;
+  }
+
+  .botao-curtir, .botao-compartilhar {
+    font-size: 13px;
+    gap: 4px;
   }
 
   .hero-content h2 {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .hero-content p {
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .botao-anunciar {
     width: 100%;
     text-align: center;
+    font-size: 14px;
+    padding: 10px;
   }
 
   .menu-opcoes {
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
   }
 
   .menu-opcoes span {
     width: 100%;
+    font-size: 13px;
   }
-}
 
-/* Correção final para manter cards retrato */
+  /* Correção final para manter cards retrato */
 .card-anuncio {
   background: #ffffff;
   border-radius: 12px;
@@ -484,3 +522,5 @@ body {
   align-items: center;
   gap: 6px;
 }
+}
+
