@@ -64,15 +64,8 @@ function Home() {
   }, [filtroModelo, busca, todosAnuncios]);
 
   const totalPaginas = Math.ceil(anuncios.length / anunciosPorPagina);
-
-  const anunciosExibidos = anuncios.slice(
-    (paginaAtual - 1) * anunciosPorPagina,
-    paginaAtual * anunciosPorPagina
-  );
-
-  const irParaLoginAnunciante = () => {
-    navigate("/login-anunciante");
-  };
+  const anunciosExibidos = anuncios.slice((paginaAtual - 1) * anunciosPorPagina, paginaAtual * anunciosPorPagina);
+  const irParaLoginAnunciante = () => navigate("/login-anunciante");
 
   useEffect(() => {
     const slides = document.querySelectorAll(".slide");
@@ -87,6 +80,7 @@ function Home() {
 
   const [curtidas, setCurtidas] = useState({});
   const [curtido, setCurtido] = useState({});
+  const [menuCompartilharAtivo, setMenuCompartilharAtivo] = useState(null);
 
   useEffect(() => {
     const curtidasSalvas = JSON.parse(localStorage.getItem("curtidas_webbuses")) || {};
@@ -95,36 +89,35 @@ function Home() {
 
   const handleCurtir = (id) => {
     const curtidasSalvas = JSON.parse(localStorage.getItem("curtidas_webbuses")) || {};
-
     if (curtidasSalvas[id]) {
       alert("Você já curtiu esse anúncio.");
       return;
     }
-
-    setCurtidas((prev) => ({
-      ...prev,
-      [id]: (prev[id] || 0) + 1,
-    }));
-
+    setCurtidas(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
     const atualizado = { ...curtidasSalvas, [id]: true };
     setCurtido(atualizado);
     localStorage.setItem("curtidas_webbuses", JSON.stringify(atualizado));
   };
 
-  const handleCompartilhar = (id) => {
+  const toggleMenuCompartilhar = (id) => {
+    setMenuCompartilharAtivo(prev => (prev === id ? null : id));
+  };
+
+  const copiarLink = (id) => {
     const link = `${window.location.origin}/onibus/${id}`;
-    const mensagem = encodeURIComponent(`🚍 Veja esse ônibus à venda: ${link}`);
-    const acao = window.prompt(
-      `🔗 Compartilhar Anúncio:\n\n1️⃣ Copiar Link\n2️⃣ Enviar por WhatsApp\n3️⃣ Publicar no Facebook\n\nDigite 1, 2 ou 3`
-    );
-    if (acao === "1") {
-      navigator.clipboard.writeText(link);
-      alert("✅ Link copiado!");
-    } else if (acao === "2") {
-      window.open(`https://wa.me/?text=${mensagem}`, "_blank");
-    } else if (acao === "3") {
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${link}`, "_blank");
-    }
+    navigator.clipboard.writeText(link);
+    alert("✅ Link copiado!");
+    setMenuCompartilharAtivo(null);
+  };
+
+  const compartilharWhatsApp = (anuncio) => {
+    const texto = encodeURIComponent(`🚍 Veja esse ônibus à venda:\n${anuncio.fabricanteCarroceria} ${anuncio.modeloCarroceria}\n${window.location.origin}/onibus/${anuncio._id}`);
+    window.open(`https://wa.me/?text=${texto}`, "_blank");
+  };
+
+  const compartilharFacebook = (id) => {
+    const url = encodeURIComponent(`${window.location.origin}/onibus/${id}`);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, "_blank");
   };
 
   return (
@@ -133,13 +126,7 @@ function Home() {
         <div className="barra-pesquisa-container">
           <img src={logoWebBuses} alt="Web Buses" className="logo-img" />
           <div className="barra-pesquisa">
-            <input
-              type="text"
-              placeholder="Buscar ônibus por modelo..."
-              className="input-pesquisa"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-            />
+            <input type="text" placeholder="Buscar ônibus por modelo..." className="input-pesquisa" value={busca} onChange={(e) => setBusca(e.target.value)} />
             <select className="filtro-pesquisa">
               <option value="carroceria">Modelo de Carroceria</option>
               <option value="chassis">Modelo de Chassis</option>
@@ -147,9 +134,7 @@ function Home() {
             <button className="botao-lupa" onClick={() => setBusca(busca)}>🔍</button>
           </div>
         </div>
-        <button className="botao-anunciar" onClick={irParaLoginAnunciante}>
-          Anuncie seu Ônibus
-        </button>
+        <button className="botao-anunciar" onClick={irParaLoginAnunciante}>Anuncie seu Ônibus</button>
       </header>
 
       <div className="menu-carrocerias">
@@ -183,7 +168,7 @@ function Home() {
           <p>Venda e compre ônibus e utilitários com segurança e agilidade.</p>
         </div>
       </section>
-      
+
       <main className="anuncios">
         <h2>Últimos anúncios</h2>
         <div className="grid-anuncios">
@@ -199,42 +184,31 @@ function Home() {
                   <Link to={`/onibus/${anuncio._id}`}>
                     <button className="botao-saiba-mais">Saiba Mais</button>
                   </Link>
-                  <button
-                    className={`botao-curtir ${curtido[anuncio._id] ? "curtido" : ""}`}
-                    onClick={() => handleCurtir(anuncio._id)}
-                    disabled={!!curtido[anuncio._id]}
-                    style={{
-                      backgroundColor: curtido[anuncio._id] ? "#ff3366" : "#ffffff",
-                      color: curtido[anuncio._id] ? "#fff" : "#111",
-                      border: "1px solid #ccc",
-                      borderRadius: "20px",
-                      padding: "6px 12px",
-                      fontWeight: "bold",
-                      cursor: curtido[anuncio._id] ? "not-allowed" : "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px"
-                    }}
-                  >
+                  <button className={`botao-curtir ${curtido[anuncio._id] ? "curtido" : ""}`} onClick={() => handleCurtir(anuncio._id)} disabled={!!curtido[anuncio._id]} style={{ backgroundColor: curtido[anuncio._id] ? "#ff3366" : "#ffffff", color: curtido[anuncio._id] ? "#fff" : "#111", border: "1px solid #ccc", borderRadius: "20px", padding: "6px 12px", fontWeight: "bold", cursor: curtido[anuncio._id] ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
                     ❤️ {curtidas[anuncio._id] || 0}
                   </button>
-                  <button className="botao-compartilhar" onClick={() => handleCompartilhar(anuncio._id)}>
-                    🔗 Compartilhar
-                  </button>
+                  <div className="botao-compartilhar-container">
+                    <button className="botao-compartilhar" onClick={() => toggleMenuCompartilhar(anuncio._id)}>
+                      🔗 Compartilhar
+                    </button>
+                    {menuCompartilharAtivo === anuncio._id && (
+                      <div className="menu-compartilhar">
+                        <button onClick={() => copiarLink(anuncio._id)}>🔗 Copiar Link</button>
+                        <button onClick={() => compartilharWhatsApp(anuncio)}>📲 WhatsApp</button>
+                        <button onClick={() => compartilharFacebook(anuncio._id)}>📢 Facebook</button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
+        </div>
 
         {totalPaginas > 1 && (
           <div className="paginacao">
             {[...Array(totalPaginas)].map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setPaginaAtual(i + 1)}
-                className={paginaAtual === i + 1 ? "pagina-ativa" : ""}
-              >
+              <button key={i} onClick={() => setPaginaAtual(i + 1)} className={paginaAtual === i + 1 ? "pagina-ativa" : ""}>
                 {i + 1}
               </button>
             ))}

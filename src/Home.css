@@ -355,6 +355,30 @@ body {
   cursor: not-allowed;
 }
 
+.menu-compartilhar {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.menu-compartilhar button {
+  background-color: #f5f5f5;
+  color: #111;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.menu-compartilhar button:hover {
+  background-color: #88fe03;
+  color: #111;
+}
+
 @media (max-width: 768px) {
   .home-header {
     flex-direction: column;
