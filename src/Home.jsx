@@ -128,17 +128,19 @@ const compartilharFacebook = (id) => {
     <div className="home-container">
       <header className="home-header">
         <div className="barra-pesquisa-container">
-          <img src={logoWebBuses} alt="Web Buses" className="logo-img" />
-          <div className="barra-pesquisa">
-            <input type="text" placeholder="Buscar ônibus por modelo..." className="input-pesquisa" value={busca} onChange={(e) => setBusca(e.target.value)} />
-            <select className="filtro-pesquisa">
-              <option value="carroceria">Modelo de Carroceria</option>
-              <option value="chassis">Modelo de Chassis</option>
-            </select>
-            <button className="botao-lupa" onClick={() => setBusca(busca)}>🔍</button>
-          </div>
-        </div>
-        <button className="botao-anunciar" onClick={irParaLoginAnunciante}>Anuncie seu Ônibus</button>
+       <img src={logoWebBuses} alt="Web Buses" className="logo-img" />
+       <div className="barra-pesquisa">
+       <input
+        type="text"
+        placeholder="Encontre o ônibus perfeito para sua frota!"
+        className="input-pesquisa"
+        value={busca}
+        onChange={(e) => setBusca(e.target.value)}
+       />
+       <button className="botao-lupa" onClick={() => setBusca(busca)}>🔍</button>
+       </div>
+      </div>
+        <button className="botao-anunciar" onClick={irParaLoginAnunciante}>Anuncie seu Ônibus Conosco</button>
       </header>
 
       <div className="menu-carrocerias">
