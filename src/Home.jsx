@@ -104,21 +104,25 @@ function Home() {
   };
 
   const copiarLink = (id) => {
-    const link = `${window.location.origin}/onibus/${id}`;
-    navigator.clipboard.writeText(link);
-    alert("✅ Link copiado!");
-    setMenuCompartilharAtivo(null);
-  };
+  const link = `https://backend-webbuses.onrender.com/preview/${id}`;
+  navigator.clipboard.writeText(link);
+  alert("✅ Link com imagem copiado!");
+  setMenuCompartilharAtivo(null);
+};
 
-  const compartilharWhatsApp = (anuncio) => {
-    const texto = encodeURIComponent(`🚍 Veja esse ônibus à venda:\n${anuncio.fabricanteCarroceria} ${anuncio.modeloCarroceria}\n${window.location.origin}/onibus/${anuncio._id}`);
-    window.open(`https://wa.me/?text=${texto}`, "_blank");
-  };
+  // ✅ WhatsApp com link de preview
+const compartilharWhatsApp = (anuncio) => {
+  const texto = encodeURIComponent(
+    `🚍 Veja esse ônibus à venda:\n${anuncio.fabricanteCarroceria} ${anuncio.modeloCarroceria}\nhttps://backend-webbuses.onrender.com/preview/${anuncio._id}`
+  );
+  window.open(`https://wa.me/?text=${texto}`, "_blank");
+};
 
-  const compartilharFacebook = (id) => {
-    const url = encodeURIComponent(`${window.location.origin}/onibus/${id}`);
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, "_blank");
-  };
+// ✅ Facebook com link de preview
+const compartilharFacebook = (id) => {
+  const url = encodeURIComponent(`https://backend-webbuses.onrender.com/preview/${id}`);
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, "_blank");
+};
 
   return (
     <div className="home-container">
