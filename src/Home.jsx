@@ -19,8 +19,12 @@ function Home() {
   const [filtroModelo, setFiltroModelo] = useState(null);
   const anunciosPorPagina = 12;
 
+  const [curtidas, setCurtidas] = useState({});
+  const [curtido, setCurtido] = useState({});
+  const [menuCompartilharAtivo, setMenuCompartilharAtivo] = useState(null);
+
   useEffect(() => {
-    const buscarAnunciosDoBackend = async () => {
+    const buscarAnuncios = async () => {
       try {
         const resposta = await fetch(`${API_URL}/anuncios`);
         const todos = await resposta.json();
@@ -28,13 +32,10 @@ function Home() {
         setTodosAnuncios(aprovados);
         setAnuncios(aprovados);
       } catch (erro) {
-        console.error("Erro ao buscar anúncios do backend:", erro);
-        setTodosAnuncios([]);
-        setAnuncios([]);
+        console.error("Erro ao buscar anúncios:", erro);
       }
     };
-
-    buscarAnunciosDoBackend();
+    buscarAnuncios();
   }, []);
 
   useEffect(() => {
@@ -63,10 +64,6 @@ function Home() {
     setPaginaAtual(1);
   }, [filtroModelo, busca, todosAnuncios]);
 
-  const totalPaginas = Math.ceil(anuncios.length / anunciosPorPagina);
-  const anunciosExibidos = anuncios.slice((paginaAtual - 1) * anunciosPorPagina, paginaAtual * anunciosPorPagina);
-  const irParaLoginAnunciante = () => navigate("/login-anunciante");
-
   useEffect(() => {
     const slides = document.querySelectorAll(".slide");
     let index = 0;
@@ -77,10 +74,6 @@ function Home() {
     }, 3000);
     return () => clearInterval(intervalo);
   }, []);
-
-  const [curtidas, setCurtidas] = useState({});
-  const [curtido, setCurtido] = useState({});
-  const [menuCompartilharAtivo, setMenuCompartilharAtivo] = useState(null);
 
   useEffect(() => {
     const curtidasSalvas = JSON.parse(localStorage.getItem("curtidas_webbuses")) || {};
@@ -104,42 +97,45 @@ function Home() {
   };
 
   const copiarLink = (id) => {
-  const link = `https://backend-webbuses.onrender.com/preview/${id}`;
-  navigator.clipboard.writeText(link);
-  alert("✅ Link com imagem copiado!");
-  setMenuCompartilharAtivo(null);
-};
+    const link = `https://backend-webbuses.onrender.com/preview/${id}`;
+    navigator.clipboard.writeText(link);
+    alert("✅ Link com imagem copiado!");
+    setMenuCompartilharAtivo(null);
+  };
 
-  // ✅ WhatsApp com link de preview
-const compartilharWhatsApp = (anuncio) => {
-  const texto = encodeURIComponent(
-    `🚍 Veja esse ônibus à venda:\n${anuncio.fabricanteCarroceria} ${anuncio.modeloCarroceria}\nhttps://backend-webbuses.onrender.com/preview/${anuncio._id}`
-  );
-  window.open(`https://wa.me/?text=${texto}`, "_blank");
-};
+  const compartilharWhatsApp = (anuncio) => {
+    const texto = encodeURIComponent(
+      `🚍 Veja esse ônibus à venda:\n${anuncio.fabricanteCarroceria} ${anuncio.modeloCarroceria}\nhttps://backend-webbuses.onrender.com/preview/${anuncio._id}`
+    );
+    window.open(`https://wa.me/?text=${texto}`, "_blank");
+  };
 
-// ✅ Facebook com link de preview
-const compartilharFacebook = (id) => {
-  const url = encodeURIComponent(`https://backend-webbuses.onrender.com/preview/${id}`);
-  window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, "_blank");
-};
+  const compartilharFacebook = (id) => {
+    const url = encodeURIComponent(`https://backend-webbuses.onrender.com/preview/${id}`);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, "_blank");
+  };
+
+  const totalPaginas = Math.ceil(anuncios.length / anunciosPorPagina);
+  const anunciosExibidos = anuncios.slice((paginaAtual - 1) * anunciosPorPagina, paginaAtual * anunciosPorPagina);
+
+  const irParaLoginAnunciante = () => navigate("/login-anunciante");
 
   return (
     <div className="home-container">
       <header className="home-header">
         <div className="barra-pesquisa-container">
-       <img src={logoWebBuses} alt="Web Buses" className="logo-img" />
-       <div className="barra-pesquisa">
-       <input
-        type="text"
-        placeholder="Encontre o ônibus perfeito para sua frota!"
-        className="input-pesquisa"
-        value={busca}
-        onChange={(e) => setBusca(e.target.value)}
-       />
-       <button className="botao-lupa" onClick={() => setBusca(busca)}>🔍</button>
-       </div>
-      </div>
+          <img src={logoWebBuses} alt="Web Buses" className="logo-img" />
+          <div className="barra-pesquisa">
+            <input
+              type="text"
+              placeholder="Encontre o ônibus perfeito para sua frota!"
+              className="input-pesquisa"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+            <button className="botao-lupa" onClick={() => setBusca(busca)}>🔍</button>
+          </div>
+        </div>
         <button className="botao-anunciar" onClick={irParaLoginAnunciante}>Anuncie seu Ônibus Conosco</button>
       </header>
 
@@ -190,7 +186,11 @@ const compartilharFacebook = (id) => {
                   <Link to={`/onibus/${anuncio._id}`}>
                     <button className="botao-saiba-mais">Saiba Mais</button>
                   </Link>
-                  <button className={`botao-curtir ${curtido[anuncio._id] ? "curtido" : ""}`} onClick={() => handleCurtir(anuncio._id)} disabled={!!curtido[anuncio._id]} style={{ backgroundColor: curtido[anuncio._id] ? "#ff3366" : "#ffffff", color: curtido[anuncio._id] ? "#fff" : "#111", border: "1px solid #ccc", borderRadius: "20px", padding: "6px 12px", fontWeight: "bold", cursor: curtido[anuncio._id] ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <button
+                    className={`botao-curtir ${curtido[anuncio._id] ? "curtido" : ""}`}
+                    onClick={() => handleCurtir(anuncio._id)}
+                    disabled={!!curtido[anuncio._id]}
+                  >
                     ❤️ {curtidas[anuncio._id] || 0}
                   </button>
                   <div className="botao-compartilhar-container">

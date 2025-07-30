@@ -30,6 +30,12 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
+.logo-img {
+  height: 48px;
+  width: auto;
+}
+
+/* Barra de pesquisa */
 .barra-pesquisa-container {
   display: flex;
   align-items: center;
@@ -99,8 +105,8 @@ body {
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   transition: background 0.3s ease, transform 0.2s ease;
-  margin-left: auto;        /* empurra o botão para a direita */
-  white-space: nowrap;      /* evita quebra de texto */
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .botao-anunciar:hover {
@@ -159,9 +165,9 @@ body {
 
 .hero-content {
   background-color: rgba(0, 0, 0, 0.6);
-  padding: 12px 20px;           /* diminui a "gordura interna" */
+  padding: 12px 20px;
   border-radius: 10px;
-  max-width: 500px;             /* reduz a largura da caixa */
+  max-width: 500px;
   font-size: 14px;
   text-align: center;
 }
@@ -186,7 +192,6 @@ body {
   margin-bottom: 20px;
 }
 
-/* ✅ CORRIGIDO */
 .grid-anuncios {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -197,7 +202,6 @@ body {
   justify-items: center;
 }
 
-/* ✅ CORRIGIDO */
 .card-anuncio {
   background: #ffffff;
   border-radius: 12px;
@@ -284,8 +288,9 @@ body {
 .slide {
   display: none;
   width: 100%;
-  max-height: 400px;
-  object-fit: contain;
+  max-height: 280px;
+  height: auto;
+  object-fit: cover;
   background-color: #88fe03;
   object-position: center;
   border-bottom: 3px solid #86e200;
@@ -294,6 +299,8 @@ body {
 .slide.ativo {
   display: block;
   animation: fadeIn 0.8s ease-in-out;
+  max-height: 280px;
+  height: auto;
 }
 
 @keyframes fadeIn {
