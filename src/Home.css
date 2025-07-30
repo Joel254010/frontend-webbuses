@@ -99,8 +99,8 @@ body {
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   transition: background 0.3s ease, transform 0.2s ease;
-  margin-left: auto;
-  white-space: nowrap;
+  margin-left: auto;        /* empurra o botão para a direita */
+  white-space: nowrap;      /* evita quebra de texto */
 }
 
 .botao-anunciar:hover {
