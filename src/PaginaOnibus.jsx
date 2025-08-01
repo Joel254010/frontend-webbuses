@@ -1,12 +1,12 @@
 // src/PaginaOnibus.jsx
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom"; // ✅ adiciona useNavigate
+import { useParams, useNavigate } from "react-router-dom";
 import "./PaginaOnibus.css";
 import { API_URL } from "./config";
 
 const PaginaOnibus = () => {
   const { id } = useParams();
-  const navigate = useNavigate(); // ✅ necessário para fallback do botão Voltar
+  const navigate = useNavigate();
   const [onibus, setOnibus] = useState(null);
   const [imagemAtual, setImagemAtual] = useState("");
   const [loading, setLoading] = useState(true);
@@ -33,9 +33,9 @@ const PaginaOnibus = () => {
 
   const handleVoltar = () => {
     if (window.history.length > 1) {
-      navigate(-1); // volta se houver histórico
+      navigate(-1);
     } else {
-      navigate("/"); // fallback para a Home
+      navigate("/");
     }
   };
 
@@ -58,6 +58,12 @@ const PaginaOnibus = () => {
       </div>
     );
   }
+
+  // 🔧 Personalização do link do WhatsApp
+  const modelo = `${onibus.fabricanteCarroceria} ${onibus.modeloCarroceria}`;
+  const telefoneBruto = onibus.telefoneBruto?.replace(/\D/g, "") || "";
+  const mensagem = `Olá! Gostaria de maiores informações sobre o ônibus ${modelo} anunciado no Web Buses.`;
+  const linkWhatsapp = `https://wa.me/55${telefoneBruto}?text=${encodeURIComponent(mensagem)}`;
 
   return (
     <div className="pagina-onibus">
@@ -108,12 +114,12 @@ const PaginaOnibus = () => {
           </p>
           <p className="anunciante">📞 Anunciante: {onibus.nomeAnunciante}</p>
           <a
-            href={onibus.anunciante}
+            href={linkWhatsapp}
             target="_blank"
             rel="noreferrer"
             className="btn-whatsapp"
           >
-            Falar no WhatsApp
+            💬 Falar no WhatsApp
           </a>
         </section>
 
