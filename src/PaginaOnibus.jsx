@@ -32,12 +32,15 @@ const PaginaOnibus = () => {
   }, [id]);
 
   const handleVoltar = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate("/");
-    }
-  };
+  const referer = document.referrer;
+  if (referer.includes("/preview/")) {
+    navigate("/"); // 👈 Força voltar para a Home se veio da prévia
+  } else if (window.history.length > 1) {
+    navigate(-1);
+  } else {
+    navigate("/");
+  }
+};
 
   if (loading) {
     return (
