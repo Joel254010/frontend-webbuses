@@ -261,3 +261,30 @@
     margin-top: 20px;
   }
 }
+
+.btn-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #25D366;
+  color: white;
+  font-weight: 700;
+  font-size: 16px;
+  text-decoration: none;
+  padding: 14px 20px;
+  border-radius: 8px;
+  margin-top: 10px;
+  transition: 0.3s ease;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+.btn-whatsapp:hover {
+  background-color: #1ebe5d;
+  transform: scale(1.02);
+}
+
+/* Ícone WhatsApp no botão */
+.btn-whatsapp::before {
+  content: '📱';
+  font-size: 20px;
+  display: inline-block;
+}
