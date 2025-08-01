@@ -32,9 +32,11 @@ const PaginaOnibus = () => {
   }, [id]);
 
   const handleVoltar = () => {
-  const referer = document.referrer;
-  if (referer.includes("/preview/")) {
-    navigate("/"); // 👈 Força voltar para a Home se veio da prévia
+  const params = new URLSearchParams(window.location.search);
+  const veioDoPreview = params.get("from") === "preview";
+
+  if (veioDoPreview) {
+    navigate("/"); // 🔁 Redireciona para a Home
   } else if (window.history.length > 1) {
     navigate(-1);
   } else {
