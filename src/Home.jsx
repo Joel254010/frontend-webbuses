@@ -5,7 +5,7 @@ import logoWebBuses from "./assets/logo-webbuses.png";
 import banner1 from "./assets/banner1.png";
 import banner2 from "./assets/banner2.png";
 import { API_URL } from "./config";
-import roboWebBuses from "./assets/robo-webbuses.png";
+import roboWebBuses from "./assets/modelos/robo-webbuses.png";
 
 function removerAcentos(str) {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
