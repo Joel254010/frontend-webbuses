@@ -52,7 +52,7 @@ function Home() {
       }, 6000);
       return () => clearInterval(intervalo);
     }
-  }, [mostrarRobo]);
+  }, [mostrarRobo, falas]);
 
   useEffect(() => {
     const buscarAnuncios = async () => {
