@@ -41,11 +41,11 @@ function Home() {
     const falas = [
       "🚍 Bem-vindo à Web Buses! Aqui você encontra o ônibus ideal para sua frota.",
       "🔎 Use a barra de busca acima para procurar ônibus por modelo ou fabricante.",
-      "📁 Filtre por modelo de carroceria clicando nas opções acima dos banners.",
-      "📢 Clique em 'Anuncie seu Ônibus' para publicar seus veículos por R$49,90.",
-      "ℹ️ Clique em 'Saiba Mais' em qualquer card para ver os detalhes do anúncio."
+      "📁 Filtre por modelo clicando nas opções acima dos banners.",
+      "📢 Clique em 'Anuncie seu Ônibus' para publicar por R$49,90.",
+      "ℹ️ Clique em 'Saiba Mais' para ver os detalhes do anúncio."
     ];
-    
+
     let i = 0;
     const intervalo = setInterval(() => {
       setFalaRobo(falas[i]);
@@ -188,13 +188,16 @@ function Home() {
           <span onClick={() => setFiltroModelo("doubledecker")}>Double Decker</span>
         </div>
 
-        {/* Robô flutuante */}
         {mostrarRobo && (
-          <div className="robo-flutuante">
-            <img src={roboWebBuses} alt="Robô Web Buses" className="robo-img" />
-            <p className="fala-robo">{falaRobo}</p>
-          </div>
-        )}
+  <>
+    <img src={roboWebBuses} alt="Robô Web Buses" className="robo-flutuante" />
+    {falaRobo && (
+      <div className="balao-fala">
+        {falaRobo}
+      </div>
+    )}
+  </>
+)}
 
         {filtroModelo && (
           <p

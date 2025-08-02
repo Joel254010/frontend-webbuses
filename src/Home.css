@@ -466,7 +466,7 @@ body {
   right: 24px;
   width: 120px;
   height: 120px;
-  background-image: url('./assets/logo-webbuses.png'); /* você pode substituir por uma imagem de robô futuramente */
+  background-image: url('./assets/robo-webbuses.png');
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -493,12 +493,8 @@ body {
 }
 
 @keyframes flutuar {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
 }
 
 @keyframes aparecer {
@@ -512,7 +508,6 @@ body {
   }
 }
 
-/* Responsivo */
 @media (max-width: 600px) {
   .web-robozin {
     width: 80px;
