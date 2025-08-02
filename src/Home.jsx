@@ -5,9 +5,10 @@ import logoWebBuses from "./assets/logo-webbuses.png";
 import banner1 from "./assets/banner1.png";
 import banner2 from "./assets/banner2.png";
 import { API_URL } from "./config";
+import roboWebBuses from "./assets/robo-webbuses.png";
 
 function removerAcentos(str) {
-  return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 function Home() {
@@ -22,6 +23,36 @@ function Home() {
   const [curtidas, setCurtidas] = useState({});
   const [curtido, setCurtido] = useState({});
   const [menuCompartilharAtivo, setMenuCompartilharAtivo] = useState(null);
+
+  const [mostrarRobo, setMostrarRobo] = useState(false);
+  const [falaRobo, setFalaRobo] = useState("");
+  const falas = [
+    "🚍 Bem-vindo à Web Buses! Aqui você encontra o ônibus ideal para sua frota.",
+    "🔎 Use a barra de busca acima para procurar ônibus por modelo ou fabricante.",
+    "📁 Filtre por modelo de carroceria clicando nas opções acima dos banners.",
+    "📢 Clique em 'Anuncie seu Ônibus' para publicar seus veículos por R$49,90.",
+    "ℹ️ Clique em 'Saiba Mais' em qualquer card para ver os detalhes do anúncio."
+  ];
+
+  useEffect(() => {
+    const jaVisitou = localStorage.getItem("visitou_robo_webbuses");
+    if (!jaVisitou) {
+      setMostrarRobo(true);
+      localStorage.setItem("visitou_robo_webbuses", "true");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mostrarRobo) {
+      let i = 0;
+      const intervalo = setInterval(() => {
+        setFalaRobo(falas[i]);
+        i++;
+        if (i >= falas.length) clearInterval(intervalo);
+      }, 6000);
+      return () => clearInterval(intervalo);
+    }
+  }, [mostrarRobo]);
 
   useEffect(() => {
     const buscarAnuncios = async () => {
@@ -40,13 +71,9 @@ function Home() {
 
   useEffect(() => {
     let filtrados = todosAnuncios;
-
     if (filtroModelo) {
-      filtrados = filtrados.filter(anuncio =>
-        removerAcentos(anuncio.tipoModelo || "").includes(removerAcentos(filtroModelo))
-      );
+      filtrados = filtrados.filter(anuncio => removerAcentos(anuncio.tipoModelo || "").includes(removerAcentos(filtroModelo)));
     }
-
     if (busca) {
       filtrados = filtrados.filter(anuncio => {
         const campos = [
@@ -59,7 +86,6 @@ function Home() {
         return removerAcentos(campos).includes(removerAcentos(busca));
       });
     }
-
     setAnuncios(filtrados);
     setPaginaAtual(1);
   }, [filtroModelo, busca, todosAnuncios]);
@@ -104,9 +130,7 @@ function Home() {
   };
 
   const compartilharWhatsApp = (anuncio) => {
-    const texto = encodeURIComponent(
-      `🚍 Veja esse ônibus à venda:\n${anuncio.fabricanteCarroceria} ${anuncio.modeloCarroceria}\nhttps://backend-webbuses.onrender.com/preview/${anuncio._id}`
-    );
+    const texto = encodeURIComponent(`🚍 Veja esse ônibus à venda:\n${anuncio.fabricanteCarroceria} ${anuncio.modeloCarroceria}\nhttps://backend-webbuses.onrender.com/preview/${anuncio._id}`);
     window.open(`https://wa.me/?text=${texto}`, "_blank");
   };
 
@@ -150,7 +174,14 @@ function Home() {
           <span onClick={() => setFiltroModelo("lowdriver")}>Low Driver</span>
           <span onClick={() => setFiltroModelo("doubledecker")}>Double Decker</span>
         </div>
-        {filtroModelo && (
+      {mostrarRobo && (
+        <div className="robo-flutuante">
+          <img src={roboWebBuses} alt="Robô Web Buses" className="robo-img" />
+          <p className="fala-robo">{falaRobo}</p>
+        </div>
+      )}
+
+      {filtroModelo && (
           <p style={{ color: "#fff", marginTop: 10, cursor: "pointer" }} onClick={() => setFiltroModelo(null)}>
             🔄 Mostrar todos os modelos
           </p>
