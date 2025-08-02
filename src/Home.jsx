@@ -1,3 +1,4 @@
+// src/Home.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Home.css";
@@ -26,6 +27,7 @@ function Home() {
 
   const [mostrarRobo, setMostrarRobo] = useState(false);
   const [falaRobo, setFalaRobo] = useState("");
+
   const falas = [
     "🚍 Bem-vindo à Web Buses! Aqui você encontra o ônibus ideal para sua frota.",
     "🔎 Use a barra de busca acima para procurar ônibus por modelo ou fabricante.",
@@ -43,16 +45,16 @@ function Home() {
   }, []);
 
   useEffect(() => {
-  if (mostrarRobo) {
-     let i = 0;
-    const intervalo = setInterval(() => {
-      setFalaRobo(falas[i]);
-      i++;
-      if (i >= falas.length) clearInterval(intervalo);
-    }, 6000);
-    return () => clearInterval(intervalo);
-  }
-}, [mostrarRobo]);
+    if (mostrarRobo) {
+      let i = 0;
+      const intervalo = setInterval(() => {
+        setFalaRobo(falas[i]);
+        i++;
+        if (i >= falas.length) clearInterval(intervalo);
+      }, 6000);
+      return () => clearInterval(intervalo);
+    }
+  }, [mostrarRobo, falas]); // ✅ Correção do ESLint aqui
 
   useEffect(() => {
     const buscarAnuncios = async () => {
@@ -72,7 +74,9 @@ function Home() {
   useEffect(() => {
     let filtrados = todosAnuncios;
     if (filtroModelo) {
-      filtrados = filtrados.filter(anuncio => removerAcentos(anuncio.tipoModelo || "").includes(removerAcentos(filtroModelo)));
+      filtrados = filtrados.filter(anuncio =>
+        removerAcentos(anuncio.tipoModelo || "").includes(removerAcentos(filtroModelo))
+      );
     }
     if (busca) {
       filtrados = filtrados.filter(anuncio => {
@@ -130,7 +134,9 @@ function Home() {
   };
 
   const compartilharWhatsApp = (anuncio) => {
-    const texto = encodeURIComponent(`🚍 Veja esse ônibus à venda:\n${anuncio.fabricanteCarroceria} ${anuncio.modeloCarroceria}\nhttps://backend-webbuses.onrender.com/preview/${anuncio._id}`);
+    const texto = encodeURIComponent(
+      `🚍 Veja esse ônibus à venda:\n${anuncio.fabricanteCarroceria} ${anuncio.modeloCarroceria}\nhttps://backend-webbuses.onrender.com/preview/${anuncio._id}`
+    );
     window.open(`https://wa.me/?text=${texto}`, "_blank");
   };
 
@@ -140,12 +146,16 @@ function Home() {
   };
 
   const totalPaginas = Math.ceil(anuncios.length / anunciosPorPagina);
-  const anunciosExibidos = anuncios.slice((paginaAtual - 1) * anunciosPorPagina, paginaAtual * anunciosPorPagina);
+  const anunciosExibidos = anuncios.slice(
+    (paginaAtual - 1) * anunciosPorPagina,
+    paginaAtual * anunciosPorPagina
+  );
 
   const irParaLoginAnunciante = () => navigate("/login-anunciante");
 
   return (
     <div className="home-container">
+      {/* topo */}
       <header className="home-header">
         <div className="barra-pesquisa-container">
           <img src={logoWebBuses} alt="Web Buses" className="logo-img" />
@@ -157,10 +167,12 @@ function Home() {
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
-            <button className="botao-lupa" onClick={() => setBusca(busca)}>🔍</button>
+            <button className="botao-lupa">🔍</button>
           </div>
         </div>
-        <button className="botao-anunciar" onClick={irParaLoginAnunciante}>Anuncie seu Ônibus Conosco</button>
+        <button className="botao-anunciar" onClick={irParaLoginAnunciante}>
+          Anuncie seu Ônibus Conosco
+        </button>
       </header>
 
       <div className="menu-carrocerias">
@@ -174,20 +186,26 @@ function Home() {
           <span onClick={() => setFiltroModelo("lowdriver")}>Low Driver</span>
           <span onClick={() => setFiltroModelo("doubledecker")}>Double Decker</span>
         </div>
-      {mostrarRobo && (
-        <div className="robo-flutuante">
-          <img src={roboWebBuses} alt="Robô Web Buses" className="robo-img" />
-          <p className="fala-robo">{falaRobo}</p>
-        </div>
-      )}
 
-      {filtroModelo && (
-          <p style={{ color: "#fff", marginTop: 10, cursor: "pointer" }} onClick={() => setFiltroModelo(null)}>
+        {/* Robô flutuante */}
+        {mostrarRobo && (
+          <div className="robo-flutuante">
+            <img src={roboWebBuses} alt="Robô Web Buses" className="robo-img" />
+            <p className="fala-robo">{falaRobo}</p>
+          </div>
+        )}
+
+        {filtroModelo && (
+          <p
+            style={{ color: "#fff", marginTop: 10, cursor: "pointer" }}
+            onClick={() => setFiltroModelo(null)}
+          >
             🔄 Mostrar todos os modelos
           </p>
         )}
       </div>
 
+      {/* Carrossel */}
       <section className="carrossel">
         <div className="slides">
           <img src={banner1} alt="Banner 1" className="slide ativo" />
@@ -195,6 +213,7 @@ function Home() {
         </div>
       </section>
 
+      {/* Hero */}
       <section className="hero">
         <div className="hero-content">
           <h2>Encontre o ônibus ideal para seu negócio</h2>
@@ -202,6 +221,7 @@ function Home() {
         </div>
       </section>
 
+      {/* Anúncios */}
       <main className="anuncios">
         <h2>Últimos anúncios</h2>
         <div className="grid-anuncios">
@@ -210,7 +230,12 @@ function Home() {
               <img src={anuncio.imagens?.[0] || ""} className="imagem-capa" alt={anuncio.modeloCarroceria} />
               <div className="info-anuncio">
                 <h3>{anuncio.fabricanteCarroceria} {anuncio.modeloCarroceria}</h3>
-                <p className="valor">{Number(anuncio.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+                <p className="valor">
+                  {Number(anuncio.valor).toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  })}
+                </p>
                 <span>{anuncio.kilometragem} km</span><br />
                 <span>{anuncio.localizacao?.cidade} - {anuncio.localizacao?.estado}</span>
                 <div className="acoes-anuncio">
@@ -245,7 +270,11 @@ function Home() {
         {totalPaginas > 1 && (
           <div className="paginacao">
             {[...Array(totalPaginas)].map((_, i) => (
-              <button key={i} onClick={() => setPaginaAtual(i + 1)} className={paginaAtual === i + 1 ? "pagina-ativa" : ""}>
+              <button
+                key={i}
+                onClick={() => setPaginaAtual(i + 1)}
+                className={paginaAtual === i + 1 ? "pagina-ativa" : ""}
+              >
                 {i + 1}
               </button>
             ))}
