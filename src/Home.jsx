@@ -45,16 +45,25 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    if (mostrarRobo) {
-      let i = 0;
-      const intervalo = setInterval(() => {
-        setFalaRobo(falas[i]);
-        i++;
-        if (i >= falas.length) clearInterval(intervalo);
-      }, 6000);
-      return () => clearInterval(intervalo);
-    }
-  }, [mostrarRobo, falas]); // ✅ Correção do ESLint aqui
+  if (mostrarRobo) {
+    const falas = [
+      "🚍 Bem-vindo à Web Buses! Aqui você encontra o ônibus ideal para sua frota.",
+      "🔎 Use a barra de busca acima para procurar ônibus por modelo ou fabricante.",
+      "📁 Filtre por modelo de carroceria clicando nas opções acima dos banners.",
+      "📢 Clique em 'Anuncie seu Ônibus' para publicar seus veículos por R$49,90.",
+      "ℹ️ Clique em 'Saiba Mais' em qualquer card para ver os detalhes do anúncio."
+    ];
+    
+    let i = 0;
+    const intervalo = setInterval(() => {
+      setFalaRobo(falas[i]);
+      i++;
+      if (i >= falas.length) clearInterval(intervalo);
+    }, 6000);
+
+    return () => clearInterval(intervalo);
+  }
+}, [mostrarRobo]);
 
   useEffect(() => {
     const buscarAnuncios = async () => {
