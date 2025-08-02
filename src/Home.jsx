@@ -44,14 +44,7 @@ function Home() {
 
   useEffect(() => {
   if (mostrarRobo) {
-    const falas = [
-      "Olá! 👋 Eu sou o Robô da Web Buses!",
-      "Aqui você encontra ônibus à venda em todo o Brasil.",
-      "Use os filtros ou a busca para encontrar o veículo ideal.",
-      "E se quiser anunciar, clique no botão 'Anuncie seu Ônibus'!"
-    ];
-    
-    let i = 0;
+     let i = 0;
     const intervalo = setInterval(() => {
       setFalaRobo(falas[i]);
       i++;
