@@ -1,4 +1,3 @@
-// src/App.js
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./Home";
@@ -15,15 +14,9 @@ import PainelAdmin from "./PainelAdmin";
 import PagamentoAnuncio from "./PagamentoAnuncio";
 import ListaPorModelo from "./ListaPorModelo";
 
-// ✅ Importa o robô flutuante
-import RoboFlutuante from "./RoboFlutuante";
-
 function App() {
   return (
     <Router>
-      {/* ✅ Robô fora das rotas, aparece na maioria das páginas */}
-      <RoboFlutuante />
-
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/onibus/:id" element={<PaginaOnibus />} />
