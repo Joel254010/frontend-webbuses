@@ -52,36 +52,34 @@ function Home() {
     let i = 0;
 
     const moverERotacionar = () => {
-      // Remove destaque anterior
-      document.querySelectorAll(".destacado-pelo-robo").forEach(el =>
-        el.classList.remove("destacado-pelo-robo")
-      );
+  document.querySelectorAll(".destacado-pelo-robo").forEach(el =>
+    el.classList.remove("destacado-pelo-robo")
+  );
 
-      const falaAtual = falas[i];
-      const alvo = falaAtual.seletor ? document.querySelector(falaAtual.seletor) : null;
+  const falaAtual = falas[i];
+  const alvo = falaAtual.seletor ? document.querySelector(falaAtual.seletor) : null;
 
-      // Se houver seletor mas não encontrou o elemento ainda, pula este passo
-      if (falaAtual.seletor && !alvo) return;
+  setFalaRobo(falaAtual.texto);
 
-      setFalaRobo(falaAtual.texto);
+  if (alvo) {
+    alvo.classList.add("destacado-pelo-robo");
+    const rect = alvo.getBoundingClientRect();
+    const containerTop = containerRef.current?.getBoundingClientRect()?.top || 0;
 
-      if (alvo) {
-        alvo.classList.add("destacado-pelo-robo");
+    setPosicaoRobo({
+      top: rect.top - containerTop + rect.height + 10,
+      left: rect.left + rect.width / 2
+    });
 
-        // Faz scroll automático até o elemento
-        alvo.scrollIntoView({ behavior: "smooth", block: "center" });
+    // 🟢 Scrolla até o alvo
+    alvo.scrollIntoView({ behavior: "smooth", block: "center" });
 
-        const rect = alvo.getBoundingClientRect();
-        const containerTop = containerRef.current?.getBoundingClientRect()?.top || 0;
-
-        setPosicaoRobo({
-          top: rect.top - containerTop + rect.height + 10,
-          left: rect.left + rect.width / 2
-        });
-      } else {
-        setPosicaoRobo({ top: 200, left: window.innerWidth / 2 - 100 });
-      }
-    };
+  } else {
+    // 🔁 Mesmo sem alvo, posiciona e scrolla até o topo
+    setPosicaoRobo({ top: 200, left: window.innerWidth / 2 - 100 });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+};
 
     setTimeout(() => {
       moverERotacionar();
