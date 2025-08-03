@@ -534,3 +534,24 @@ body {
     max-width: 90vw;
   }
 }
+
+.destacado-pelo-robo {
+  position: relative;
+  z-index: 999;
+  box-shadow: 0 0 12px 4px #88fe03;
+  animation: pulsar-glow 1.5s infinite;
+  transition: box-shadow 0.3s;
+  border-radius: 8px;
+}
+
+@keyframes pulsar-glow {
+  0% {
+    box-shadow: 0 0 8px 2px #88fe03;
+  }
+  50% {
+    box-shadow: 0 0 16px 6px #88fe03;
+  }
+  100% {
+    box-shadow: 0 0 8px 2px #88fe03;
+  }
+}

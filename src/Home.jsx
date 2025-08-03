@@ -1,5 +1,5 @@
 // src/Home.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Home.css";
 import logoWebBuses from "./assets/logo-webbuses.png";
@@ -9,7 +9,7 @@ import { API_URL } from "./config";
 import roboWebBuses from "./assets/modelos/robo-webbuses.png";
 
 function removerAcentos(str) {
-  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
 function Home() {
@@ -27,6 +27,9 @@ function Home() {
 
   const [mostrarRobo, setMostrarRobo] = useState(false);
   const [falaRobo, setFalaRobo] = useState("");
+  const [posicaoRobo, setPosicaoRobo] = useState({ top: 0, left: 0 });
+
+  const containerRef = useRef();
 
   useEffect(() => {
     const jaVisitou = localStorage.getItem("visitou_robo_webbuses");
@@ -39,29 +42,57 @@ function Home() {
   useEffect(() => {
     if (mostrarRobo) {
       const falas = [
-        "🚍 Bem-vindo à Web Buses! Aqui você encontra o ônibus ideal para sua frota.",
-        "🔎 Use a barra de busca acima para procurar ônibus por modelo ou fabricante.",
-        "📁 Filtre por modelo clicando nas opções acima dos banners.",
-        "📢 Clique em 'Anuncie seu Ônibus' para publicar por R$49,90.",
-        "ℹ️ Clique em 'Saiba Mais' para ver os detalhes do anúncio."
+        { texto: "🚍 Bem-vindo à Web Buses! Aqui você encontra o ônibus ideal para sua frota.", seletor: null },
+        { texto: "🔎 Use a barra de busca acima para procurar a melhor opção de compra.", seletor: ".input-pesquisa" },
+        { texto: "📁 Filtre por modelo de carrocerias para ver as opções disponíveis.", seletor: ".menu-opcoes" },
+        { texto: "📢 Clique em 'Anuncie seu Ônibus Conosco' para publicar seu anúncio.", seletor: ".botao-anunciar" },
+        { texto: "ℹ️ Clicando em 'Saiba Mais' você verá todos os detalhes do anúncio.", seletor: ".botao-saiba-mais:last-of-type" }
       ];
 
       let i = 0;
-      setFalaRobo(falas[0]);
+      const moverERotacionar = () => {
+  // 🔁 Remove destaque anterior
+  document.querySelectorAll(".destacado-pelo-robo").forEach(el =>
+    el.classList.remove("destacado-pelo-robo")
+  );
+
+  const alvo = falas[i].seletor ? document.querySelector(falas[i].seletor) : null;
+  setFalaRobo(falas[i].texto);
+
+  if (alvo) {
+    // ✅ Aplica destaque visual no elemento atual
+    alvo.classList.add("destacado-pelo-robo");
+
+    const rect = alvo.getBoundingClientRect();
+    const containerTop = containerRef.current?.getBoundingClientRect()?.top || 0;
+
+    setPosicaoRobo({
+      top: rect.top - containerTop + rect.height + 10,
+      left: rect.left + rect.width / 2
+    });
+  } else {
+    setPosicaoRobo({ top: 200, left: window.innerWidth / 2 - 100 });
+  }
+};
+
+moverERotacionar();
+
       const intervalo = setInterval(() => {
-        i++;
-        if (i < falas.length) {
-          setFalaRobo(falas[i]);
-        } else {
-          clearInterval(intervalo);
-          setTimeout(() => setMostrarRobo(false), 10000);
-        }
-      }, 6000);
-
-      return () => clearInterval(intervalo);
-    }
+  i++;
+  if (i < falas.length) {
+    moverERotacionar();
+  } else {
+    clearInterval(intervalo);
+    setTimeout(() => {
+      document.querySelectorAll(".destacado-pelo-robo").forEach(el =>
+        el.classList.remove("destacado-pelo-robo")
+      );
+      setMostrarRobo(false);
+    }, 5000);
+  }
+}, 6000);
+}
   }, [mostrarRobo]);
-
   useEffect(() => {
     const buscarAnuncios = async () => {
       try {
@@ -160,8 +191,7 @@ function Home() {
   const irParaLoginAnunciante = () => navigate("/login-anunciante");
 
   return (
-    <div className="home-container">
-      {/* topo */}
+    <div className="home-container" ref={containerRef}>
       <header className="home-header">
         <div className="barra-pesquisa-container">
           <img src={logoWebBuses} alt="Web Buses" className="logo-img" />
@@ -192,26 +222,23 @@ function Home() {
           <span onClick={() => setFiltroModelo("lowdriver")}>Low Driver</span>
           <span onClick={() => setFiltroModelo("doubledecker")}>Double Decker</span>
         </div>
-
-        {/* Robô Flutuante */}
-        {mostrarRobo && (
-          <div className="robo-flutuante-container">
-            <img src={roboWebBuses} alt="Robô Web Buses" className="robo-img" />
-            <div className="fala-robo">{falaRobo}</div>
-          </div>
-        )}
-
-        {filtroModelo && (
-          <p
-            style={{ color: "#fff", marginTop: 10, cursor: "pointer" }}
-            onClick={() => setFiltroModelo(null)}
-          >
-            🔄 Mostrar todos os modelos
-          </p>
-        )}
       </div>
 
-      {/* Carrossel */}
+      {mostrarRobo && (
+        <div
+          className="robo-flutuante-container"
+          style={{
+            position: "absolute",
+            top: posicaoRobo.top,
+            left: posicaoRobo.left,
+            transform: "translate(-50%, -50%)"
+          }}
+        >
+          <img src={roboWebBuses} alt="Robô Web Buses" className="robo-img" />
+          <div className="fala-robo">{falaRobo}</div>
+        </div>
+      )}
+
       <section className="carrossel">
         <div className="slides">
           <img src={banner1} alt="Banner 1" className="slide ativo" />
@@ -219,7 +246,6 @@ function Home() {
         </div>
       </section>
 
-      {/* Hero */}
       <section className="hero">
         <div className="hero-content">
           <h2>Encontre o ônibus ideal para seu negócio</h2>
@@ -227,7 +253,6 @@ function Home() {
         </div>
       </section>
 
-      {/* Anúncios */}
       <main className="anuncios">
         <h2>Últimos anúncios</h2>
         <div className="grid-anuncios">
