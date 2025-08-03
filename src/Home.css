@@ -467,8 +467,24 @@ body {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  z-index: 9999;
+  z-index: 999999 !important; /* ⬅️ Força o topo absoluto */
   animation: aparecer 0.5s ease-out;
+  pointer-events: none; /* ⬅️ Robô não atrapalha cliques */
+}
+
+.fala-robo {
+  background-color: #ffffff;
+  color: #111;
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  font-size: 14px;
+  font-weight: 500;
+  max-width: 280px;
+  font-family: 'Montserrat', sans-serif;
+  position: relative;
+  z-index: 999999 !important; /* ⬅️ Fala sempre visível */
+  pointer-events: auto; /* ⬅️ Permite clicar se necessário */
 }
 
 .robo-img {
