@@ -39,74 +39,75 @@ function Home() {
     }
   }, []);
 
- useEffect(() => {
-  if (mostrarRobo) {
-    const falas = [
-      { texto: "🚍 Bem-vindo à Web Buses! Aqui você encontra o ônibus ideal para sua frota.", seletor: null },
-      { texto: "🔎 Use a barra de busca acima para procurar a melhor opção de compra.", seletor: ".input-pesquisa" },
-      { texto: "📁 Filtre por modelo de carrocerias para ver as opções disponíveis.", seletor: ".menu-opcoes" },
-      { texto: "📢 Clique em 'Anuncie seu Ônibus Conosco' para publicar seu anúncio.", seletor: ".botao-anunciar" },
-      { texto: "ℹ️ Clicando em 'Saiba Mais' você verá todos os detalhes do anúncio.", seletor: ".botao-saiba-mais:last-of-type" }
-    ];
+  useEffect(() => {
+    if (mostrarRobo) {
+      const falas = [
+        { texto: "🚍 Bem-vindo à Web Buses! Aqui você encontra o ônibus ideal para sua frota.", seletor: null },
+        { texto: "🔎 Use a barra de busca acima para procurar a melhor opção de compra.", seletor: ".input-pesquisa" },
+        { texto: "📁 Filtre por modelo de carrocerias para ver as opções disponíveis.", seletor: ".menu-opcoes" },
+        { texto: "📢 Clique em 'Anuncie seu Ônibus Conosco' para publicar seu anúncio.", seletor: ".botao-anunciar" },
+        { texto: "ℹ️ Clicando em 'Saiba Mais' você verá todos os detalhes do anúncio.", seletor: ".botao-saiba-mais:last-of-type" }
+      ];
 
-    let i = 0;
+      let i = 0;
 
-    const moverERotacionar = () => {
-  document.querySelectorAll(".destacado-pelo-robo").forEach(el =>
-    el.classList.remove("destacado-pelo-robo")
-  );
+      const moverERotacionar = () => {
+        document.querySelectorAll(".destacado-pelo-robo").forEach(el =>
+          el.classList.remove("destacado-pelo-robo")
+        );
 
-  const falaAtual = falas[i];
-  const alvo = falaAtual.seletor ? document.querySelector(falaAtual.seletor) : null;
+        const falaAtual = falas[i];
+        const alvo = falaAtual.seletor ? document.querySelector(falaAtual.seletor) : null;
 
-  setFalaRobo(falaAtual.texto);
+        setFalaRobo(falaAtual.texto);
 
-  if (alvo) {
-    alvo.classList.add("destacado-pelo-robo");
-    const rect = alvo.getBoundingClientRect();
-    const containerTop = containerRef.current?.getBoundingClientRect()?.top || 0;
+        if (alvo) {
+          alvo.classList.add("destacado-pelo-robo");
+          const rect = alvo.getBoundingClientRect();
+          const containerTop = containerRef.current?.getBoundingClientRect()?.top || 0;
 
-    setPosicaoRobo({
-      top: rect.top - containerTop + rect.height + 10,
-      left: rect.left + rect.width / 2
-    });
+          setPosicaoRobo({
+            top: rect.top - containerTop + rect.height + 10 + window.scrollY,
+            left: rect.left + rect.width / 2
+          });
 
-    // 🟢 Scrolla até o alvo
-    alvo.scrollIntoView({ behavior: "smooth", block: "center" });
-
-  } else {
-    // 🔁 Mesmo sem alvo, posiciona e scrolla até o topo
-    setPosicaoRobo({ top: 200, left: window.innerWidth / 2 - 100 });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-};
-
-    setTimeout(() => {
-      moverERotacionar();
-
-      const intervalo = setInterval(() => {
-        i++;
-
-        // Pula para a próxima fala válida visível
-        while (i < falas.length && falas[i].seletor && !document.querySelector(falas[i].seletor)) {
-          i++;
-        }
-
-        if (i < falas.length) {
-          moverERotacionar();
+          alvo.scrollIntoView({ behavior: "smooth", block: "center" });
         } else {
-          clearInterval(intervalo);
-          setTimeout(() => {
-            document.querySelectorAll(".destacado-pelo-robo").forEach(el =>
-              el.classList.remove("destacado-pelo-robo")
-            );
-            setMostrarRobo(false);
-          }, 5000);
+          // 🔁 Mesmo sem alvo, posiciona e scrolla até o topo
+          setPosicaoRobo({ top: 200 + window.scrollY, left: window.innerWidth / 2 - 100 });
+          if (i === 0) {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          } else {
+            window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+          }
         }
-      }, 6000);
-    }, 100);
-  }
-}, [mostrarRobo]);
+      };
+
+      setTimeout(() => {
+        moverERotacionar();
+
+        const intervalo = setInterval(() => {
+          i++;
+
+          while (i < falas.length && falas[i].seletor && !document.querySelector(falas[i].seletor)) {
+            i++;
+          }
+
+          if (i < falas.length) {
+            moverERotacionar();
+          } else {
+            clearInterval(intervalo);
+            setTimeout(() => {
+              document.querySelectorAll(".destacado-pelo-robo").forEach(el =>
+                el.classList.remove("destacado-pelo-robo")
+              );
+              setMostrarRobo(false);
+            }, 5000);
+          }
+        }, 6000);
+      }, 100);
+    }
+  }, [mostrarRobo]);
 
   useEffect(() => {
     const buscarAnuncios = async () => {
