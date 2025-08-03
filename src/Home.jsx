@@ -37,25 +37,30 @@ function Home() {
   }, []);
 
   useEffect(() => {
-  if (mostrarRobo) {
-    const falas = [
-      "🚍 Bem-vindo à Web Buses! Aqui você encontra o ônibus ideal para sua frota.",
-      "🔎 Use a barra de busca acima para procurar ônibus por modelo ou fabricante.",
-      "📁 Filtre por modelo clicando nas opções acima dos banners.",
-      "📢 Clique em 'Anuncie seu Ônibus' para publicar por R$49,90.",
-      "ℹ️ Clique em 'Saiba Mais' para ver os detalhes do anúncio."
-    ];
+    if (mostrarRobo) {
+      const falas = [
+        "🚍 Bem-vindo à Web Buses! Aqui você encontra o ônibus ideal para sua frota.",
+        "🔎 Use a barra de busca acima para procurar ônibus por modelo ou fabricante.",
+        "📁 Filtre por modelo clicando nas opções acima dos banners.",
+        "📢 Clique em 'Anuncie seu Ônibus' para publicar por R$49,90.",
+        "ℹ️ Clique em 'Saiba Mais' para ver os detalhes do anúncio."
+      ];
 
-    let i = 0;
-    const intervalo = setInterval(() => {
-      setFalaRobo(falas[i]);
-      i++;
-      if (i >= falas.length) clearInterval(intervalo);
-    }, 6000);
+      let i = 0;
+      setFalaRobo(falas[0]);
+      const intervalo = setInterval(() => {
+        i++;
+        if (i < falas.length) {
+          setFalaRobo(falas[i]);
+        } else {
+          clearInterval(intervalo);
+          setTimeout(() => setMostrarRobo(false), 10000);
+        }
+      }, 6000);
 
-    return () => clearInterval(intervalo);
-  }
-}, [mostrarRobo]);
+      return () => clearInterval(intervalo);
+    }
+  }, [mostrarRobo]);
 
   useEffect(() => {
     const buscarAnuncios = async () => {
@@ -188,16 +193,13 @@ function Home() {
           <span onClick={() => setFiltroModelo("doubledecker")}>Double Decker</span>
         </div>
 
+        {/* Robô Flutuante */}
         {mostrarRobo && (
-  <>
-    <img src={roboWebBuses} alt="Robô Web Buses" className="robo-flutuante" />
-    {falaRobo && (
-      <div className="balao-fala">
-        {falaRobo}
-      </div>
-    )}
-  </>
-)}
+          <div className="robo-flutuante-container">
+            <img src={roboWebBuses} alt="Robô Web Buses" className="robo-img" />
+            <div className="fala-robo">{falaRobo}</div>
+          </div>
+        )}
 
         {filtroModelo && (
           <p

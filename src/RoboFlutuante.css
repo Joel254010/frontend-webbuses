@@ -1,81 +1,82 @@
+/* src/RoboFlutuante.css */
+
 .robo-flutuante {
   position: fixed;
-  bottom: 24px;
-  left: 24px;
+  bottom: 20px;
+  right: 20px;
   z-index: 9999;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  background: white;
-  border-radius: 20px;
-  padding: 10px 14px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-  animation: aparecer 0.6s ease-in-out;
+  align-items: flex-end;
+  gap: 10px;
+  max-width: 280px;
+  animation: aparecer 0.6s ease-out;
 }
 
 .icone-robo {
-  width: 64px;
-  height: 64px;
-  animation: flutuar 3s ease-in-out infinite;
+  width: 100px;
+  height: auto;
+  filter: drop-shadow(0 0 4px #88fe03);
+  animation: flutuar 2s infinite ease-in-out;
 }
 
 .fala-robo {
-  color: #111;
+  background-color: #ffffff;
+  color: #0a0a0a;
+  padding: 12px 16px;
+  border-radius: 12px;
   font-size: 14px;
   font-weight: 500;
-  max-width: 280px;
-  font-family: "Montserrat", sans-serif;
+  max-width: 200px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  position: relative;
+}
+
+.fala-robo::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 20px;
+  border-width: 8px;
+  border-style: solid;
+  border-color: #ffffff transparent transparent transparent;
 }
 
 .fechar-robo {
-  background: none;
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #ff4444;
+  color: white;
   border: none;
-  font-size: 16px;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
   cursor: pointer;
-  margin-left: 8px;
-  color: #999;
-  transition: color 0.2s ease;
+  font-weight: bold;
+  font-size: 12px;
+  line-height: 20px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.3);
+  z-index: 10000;
 }
 
-.fechar-robo:hover {
-  color: #000;
+/* Animações */
+
+@keyframes flutuar {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
 
 @keyframes aparecer {
   from {
-    transform: translateY(30px);
     opacity: 0;
+    transform: translateY(40px);
   }
   to {
-    transform: translateY(0);
     opacity: 1;
-  }
-}
-
-@keyframes flutuar {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-@media (max-width: 768px) {
-  .robo-flutuante {
-    flex-direction: row;
-    bottom: 16px;
-    left: 16px;
-    padding: 8px 10px;
-  }
-
-  .fala-robo {
-    font-size: 13px;
-    max-width: 220px;
-  }
-
-  .icone-robo {
-    width: 48px;
-    height: 48px;
+    transform: translateY(0);
   }
 }

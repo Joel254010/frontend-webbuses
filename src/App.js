@@ -1,3 +1,4 @@
+// src/App.js
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./Home";
@@ -12,13 +13,17 @@ import EditarAnuncio from "./EditarAnuncio";
 import AdminLogin from "./AdminLogin";
 import PainelAdmin from "./PainelAdmin";
 import PagamentoAnuncio from "./PagamentoAnuncio";
-
-// ✅ NOVA IMPORTAÇÃO DA LISTAGEM POR MODELO
 import ListaPorModelo from "./ListaPorModelo";
+
+// ✅ Importa o robô flutuante
+import RoboFlutuante from "./RoboFlutuante";
 
 function App() {
   return (
     <Router>
+      {/* ✅ Robô fora das rotas, aparece na maioria das páginas */}
+      <RoboFlutuante />
+
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/onibus/:id" element={<PaginaOnibus />} />
@@ -32,8 +37,6 @@ function App() {
         <Route path="/pagamento-anuncio" element={<PagamentoAnuncio />} />
         <Route path="/login-admin" element={<AdminLogin />} />
         <Route path="/painel-admin" element={<PainelAdmin />} />
-
-        {/* ✅ NOVA ROTA PARA LISTAR POR MODELO */}
         <Route path="/modelo/:slugModelo" element={<ListaPorModelo />} />
       </Routes>
     </Router>
