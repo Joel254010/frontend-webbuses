@@ -1,35 +1,34 @@
 // src/RoboFlutuante.jsx
 import React, { useState, useEffect } from "react";
 import "./RoboFlutuante.css";
-import roboIcon from "./assets/logo-webbuses.png"; // usa o logo como robô por enquanto
+import roboIcon from "./assets/modelos/robo-webbuses.png";
 
 const falas = [
-  "👋 Olá! Bem-vindo à Web Buses!",
-  "🚌 Digite qualquer modelo de ônibus na barra de pesquisa para começar.",
-  "📂 Use o menu de carrocerias para filtrar o tipo de ônibus desejado.",
-  "📢 Clique em 'Anuncie seu Ônibus' para publicar seu veículo por R$ 49,90.",
-  "🔍 Clique em 'Saiba Mais' em qualquer card para ver os detalhes do ônibus.",
+  "👋 Bem-vindo à Web Buses!",
+  "🔍 Use a busca acima para encontrar seu ônibus ideal.",
+  "🚌 Filtre por modelo clicando nos tipos de carroceria.",
+  "📢 Anuncie seu veículo clicando em 'Anuncie seu Ônibus'.",
+  "ℹ️ Clique em 'Saiba Mais' para ver todos os detalhes do anúncio."
 ];
 
 function RoboFlutuante() {
   const [passo, setPasso] = useState(0);
-  const [visivel, setVisivel] = useState(true);
+  const [visivel, setVisivel] = useState(false);
 
   useEffect(() => {
-    const jaVisitou = localStorage.getItem("visita_webbuses");
-    if (jaVisitou) {
-      setVisivel(false);
-    } else {
-      localStorage.setItem("visita_webbuses", "true");
+    const jaViu = localStorage.getItem("robo_visto_webbuses");
+    if (!jaViu) {
+      setVisivel(true);
+      localStorage.setItem("robo_visto_webbuses", "true");
     }
   }, []);
 
   useEffect(() => {
-    if (passo < falas.length - 1) {
-      const timer = setTimeout(() => setPasso(passo + 1), 5000);
+    if (visivel && passo < falas.length - 1) {
+      const timer = setTimeout(() => setPasso(passo + 1), 7000);
       return () => clearTimeout(timer);
     }
-  }, [passo]);
+  }, [passo, visivel]);
 
   if (!visivel) return null;
 
@@ -37,6 +36,7 @@ function RoboFlutuante() {
     <div className="robo-flutuante">
       <img src={roboIcon} alt="Robô Web Buses" className="icone-robo" />
       <div className="fala-robo">{falas[passo]}</div>
+      <button className="fechar-robo" onClick={() => setVisivel(false)}>✖</button>
     </div>
   );
 }

@@ -1,41 +1,81 @@
-/* src/RoboFlutuante.css */
 .robo-flutuante {
   position: fixed;
-  bottom: 100px;
+  bottom: 24px;
   left: 24px;
   z-index: 9999;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 12px;
-  animation: aparecer 0.8s ease-in-out;
+  background: white;
+  border-radius: 20px;
+  padding: 10px 14px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  animation: aparecer 0.6s ease-in-out;
 }
 
 .icone-robo {
   width: 64px;
   height: 64px;
-  border-radius: 50%;
-  background: #88fe03;
-  padding: 4px;
-  box-shadow: 0 0 8px #000;
+  animation: flutuar 3s ease-in-out infinite;
 }
 
 .fala-robo {
-  background: white;
-  color: #1a1a1a;
-  padding: 12px;
-  border-radius: 16px;
+  color: #111;
   font-size: 14px;
-  max-width: 260px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  font-weight: 500;
+  max-width: 280px;
+  font-family: "Montserrat", sans-serif;
+}
+
+.fechar-robo {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  margin-left: 8px;
+  color: #999;
+  transition: color 0.2s ease;
+}
+
+.fechar-robo:hover {
+  color: #000;
 }
 
 @keyframes aparecer {
   from {
-    transform: translateY(50px);
+    transform: translateY(30px);
     opacity: 0;
   }
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+@keyframes flutuar {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@media (max-width: 768px) {
+  .robo-flutuante {
+    flex-direction: row;
+    bottom: 16px;
+    left: 16px;
+    padding: 8px 10px;
+  }
+
+  .fala-robo {
+    font-size: 13px;
+    max-width: 220px;
+  }
+
+  .icone-robo {
+    width: 48px;
+    height: 48px;
   }
 }
