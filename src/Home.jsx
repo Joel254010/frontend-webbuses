@@ -39,60 +39,77 @@ function Home() {
     }
   }, []);
 
-  useEffect(() => {
-    if (mostrarRobo) {
-      const falas = [
-        { texto: "🚍 Bem-vindo à Web Buses! Aqui você encontra o ônibus ideal para sua frota.", seletor: null },
-        { texto: "🔎 Use a barra de busca acima para procurar a melhor opção de compra.", seletor: ".input-pesquisa" },
-        { texto: "📁 Filtre por modelo de carrocerias para ver as opções disponíveis.", seletor: ".menu-opcoes" },
-        { texto: "📢 Clique em 'Anuncie seu Ônibus Conosco' para publicar seu anúncio.", seletor: ".botao-anunciar" },
-        { texto: "ℹ️ Clicando em 'Saiba Mais' você verá todos os detalhes do anúncio.", seletor: ".botao-saiba-mais:last-of-type" }
-      ];
+ useEffect(() => {
+  if (mostrarRobo) {
+    const falas = [
+      { texto: "🚍 Bem-vindo à Web Buses! Aqui você encontra o ônibus ideal para sua frota.", seletor: null },
+      { texto: "🔎 Use a barra de busca acima para procurar a melhor opção de compra.", seletor: ".input-pesquisa" },
+      { texto: "📁 Filtre por modelo de carrocerias para ver as opções disponíveis.", seletor: ".menu-opcoes" },
+      { texto: "📢 Clique em 'Anuncie seu Ônibus Conosco' para publicar seu anúncio.", seletor: ".botao-anunciar" },
+      { texto: "ℹ️ Clicando em 'Saiba Mais' você verá todos os detalhes do anúncio.", seletor: ".botao-saiba-mais:last-of-type" }
+    ];
 
-      let i = 0;
-      const moverERotacionar = () => {
-  // 🔁 Remove destaque anterior
-  document.querySelectorAll(".destacado-pelo-robo").forEach(el =>
-    el.classList.remove("destacado-pelo-robo")
-  );
+    let i = 0;
 
-  const alvo = falas[i].seletor ? document.querySelector(falas[i].seletor) : null;
-  setFalaRobo(falas[i].texto);
-
-  if (alvo) {
-    // ✅ Aplica destaque visual no elemento atual
-    alvo.classList.add("destacado-pelo-robo");
-
-    const rect = alvo.getBoundingClientRect();
-    const containerTop = containerRef.current?.getBoundingClientRect()?.top || 0;
-
-    setPosicaoRobo({
-      top: rect.top - containerTop + rect.height + 10,
-      left: rect.left + rect.width / 2
-    });
-  } else {
-    setPosicaoRobo({ top: 200, left: window.innerWidth / 2 - 100 });
-  }
-};
-
-moverERotacionar();
-
-      const intervalo = setInterval(() => {
-  i++;
-  if (i < falas.length) {
-    moverERotacionar();
-  } else {
-    clearInterval(intervalo);
-    setTimeout(() => {
+    const moverERotacionar = () => {
+      // Remove destaque anterior
       document.querySelectorAll(".destacado-pelo-robo").forEach(el =>
         el.classList.remove("destacado-pelo-robo")
       );
-      setMostrarRobo(false);
-    }, 5000);
+
+      const falaAtual = falas[i];
+      const alvo = falaAtual.seletor ? document.querySelector(falaAtual.seletor) : null;
+
+      // Se houver seletor mas não encontrou o elemento ainda, pula este passo
+      if (falaAtual.seletor && !alvo) return;
+
+      setFalaRobo(falaAtual.texto);
+
+      if (alvo) {
+        alvo.classList.add("destacado-pelo-robo");
+
+        // Faz scroll automático até o elemento
+        alvo.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        const rect = alvo.getBoundingClientRect();
+        const containerTop = containerRef.current?.getBoundingClientRect()?.top || 0;
+
+        setPosicaoRobo({
+          top: rect.top - containerTop + rect.height + 10,
+          left: rect.left + rect.width / 2
+        });
+      } else {
+        setPosicaoRobo({ top: 200, left: window.innerWidth / 2 - 100 });
+      }
+    };
+
+    setTimeout(() => {
+      moverERotacionar();
+
+      const intervalo = setInterval(() => {
+        i++;
+
+        // Pula para a próxima fala válida visível
+        while (i < falas.length && falas[i].seletor && !document.querySelector(falas[i].seletor)) {
+          i++;
+        }
+
+        if (i < falas.length) {
+          moverERotacionar();
+        } else {
+          clearInterval(intervalo);
+          setTimeout(() => {
+            document.querySelectorAll(".destacado-pelo-robo").forEach(el =>
+              el.classList.remove("destacado-pelo-robo")
+            );
+            setMostrarRobo(false);
+          }, 5000);
+        }
+      }, 6000);
+    }, 100);
   }
-}, 6000);
-}
-  }, [mostrarRobo]);
+}, [mostrarRobo]);
+
   useEffect(() => {
     const buscarAnuncios = async () => {
       try {
