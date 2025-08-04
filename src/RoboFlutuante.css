@@ -1,9 +1,7 @@
 /* src/RoboFlutuante.css */
 
 .robo-flutuante {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
+  position: absolute; /* Antes era fixed */
   z-index: 9999;
   display: flex;
   align-items: flex-end;
@@ -79,4 +77,14 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.robo-flutuante-dinamico {
+  position: absolute;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  transform: translate(-50%, 0); /* centraliza horizontalmente o balão */
+  animation: aparecer 0.6s ease-out;
 }
