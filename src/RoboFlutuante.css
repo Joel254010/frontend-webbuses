@@ -1,15 +1,18 @@
 /* src/RoboFlutuante.css */
 
+/* Contêiner principal do robô */
 .robo-flutuante {
-  position: absolute; /* Antes era fixed */
+  position: absolute;
   z-index: 9999;
   display: flex;
   align-items: flex-end;
   gap: 10px;
   max-width: 280px;
   animation: aparecer 0.6s ease-out;
+  transform: translate(-50%, 0); /* Centraliza horizontalmente */
 }
 
+/* Imagem do robô */
 .icone-robo {
   width: 100px;
   height: auto;
@@ -17,6 +20,7 @@
   animation: flutuar 2s infinite ease-in-out;
 }
 
+/* Balão de fala */
 .fala-robo {
   background-color: #ffffff;
   color: #0a0a0a;
@@ -29,6 +33,7 @@
   position: relative;
 }
 
+/* Triângulo abaixo do balão */
 .fala-robo::after {
   content: "";
   position: absolute;
@@ -39,6 +44,7 @@
   border-color: #ffffff transparent transparent transparent;
 }
 
+/* Botão de fechar (ainda não usado) */
 .fechar-robo {
   position: absolute;
   top: -8px;
@@ -53,12 +59,11 @@
   font-weight: bold;
   font-size: 12px;
   line-height: 20px;
-  box-shadow: 0 0 6px rgba(0,0,0,0.3);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
   z-index: 10000;
 }
 
-/* Animações */
-
+/* Animações do robô */
 @keyframes flutuar {
   0%, 100% {
     transform: translateY(0);
@@ -77,14 +82,4 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.robo-flutuante-dinamico {
-  position: absolute;
-  z-index: 9999;
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  transform: translate(-50%, 0); /* centraliza horizontalmente o balão */
-  animation: aparecer 0.6s ease-out;
 }
