@@ -29,11 +29,17 @@ function Home() {
       try {
         const resposta = await fetch(`${API_URL}/anuncios`);
         const todos = await resposta.json();
-        const aprovados = todos.filter(anuncio => anuncio.status === "aprovado").reverse();
+        console.log("🔍 Dados recebidos da API:", todos); // DEBUG
+
+        const lista = Array.isArray(todos) ? todos : [];
+        const aprovados = lista.filter(anuncio => anuncio.status === "aprovado").reverse();
+
         setTodosAnuncios(aprovados);
         setAnuncios(aprovados);
       } catch (erro) {
         console.error("Erro ao buscar anúncios:", erro);
+        setTodosAnuncios([]);
+        setAnuncios([]);
       }
     };
     buscarAnuncios();
