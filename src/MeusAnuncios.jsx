@@ -15,15 +15,16 @@ function MeusAnuncios() {
     const carregarMeusAnuncios = async () => {
       try {
         const resposta = await fetch(`${API_URL}/anuncios`);
-        const todos = await resposta.json();
+const dados = await resposta.json();
+const lista = Array.isArray(dados.anuncios) ? dados.anuncios : [];
 
-        const meus = todos.filter((anuncio) => {
-          const tel = anuncio.telefoneBruto || anuncio.telefone?.replace(/\D/g, "");
-          return (
-            (telefoneBruto && tel === telefoneBruto) ||
-            (email && anuncio.email === email)
-          );
-        });
+const meus = lista.filter((anuncio) => {
+  const tel = anuncio.telefoneBruto || anuncio.telefone?.replace(/\D/g, "");
+  return (
+    (telefoneBruto && tel === telefoneBruto) ||
+    (email && anuncio.email === email)
+  );
+});
 
         setAnuncios(
           meus.filter(
