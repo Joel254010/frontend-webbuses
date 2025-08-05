@@ -1,12 +1,11 @@
 // src/Home.jsx
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Home.css";
 import logoWebBuses from "./assets/logo-webbuses.png";
 import banner1 from "./assets/banner1.png";
 import banner2 from "./assets/banner2.png";
 import { API_URL } from "./config";
-import roboWebBuses from "./assets/modelos/robo-webbuses.png";
 
 function removerAcentos(str) {
   return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -24,90 +23,6 @@ function Home() {
   const [curtidas, setCurtidas] = useState({});
   const [curtido, setCurtido] = useState({});
   const [menuCompartilharAtivo, setMenuCompartilharAtivo] = useState(null);
-
-  const [mostrarRobo, setMostrarRobo] = useState(false);
-  const [falaRobo, setFalaRobo] = useState("");
-  const [posicaoRobo, setPosicaoRobo] = useState({ top: 0, left: 0 });
-
-  const containerRef = useRef();
-
-  useEffect(() => {
-    const jaVisitou = localStorage.getItem("visitou_robo_webbuses");
-    if (!jaVisitou) {
-      setMostrarRobo(true);
-      localStorage.setItem("visitou_robo_webbuses", "true");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (mostrarRobo) {
-      const falas = [
-        { texto: "🚍 Bem-vindo à Web Buses! Aqui você encontra o ônibus ideal para sua frota.", seletor: null },
-        { texto: "🔎 Use a barra de busca acima para procurar a melhor opção de compra.", seletor: ".input-pesquisa" },
-        { texto: "📁 Filtre por modelo de carrocerias para ver as opções disponíveis.", seletor: ".menu-opcoes" },
-        { texto: "📢 Clique em 'Anuncie seu Ônibus Conosco' para publicar seu anúncio.", seletor: ".botao-anunciar" },
-        { texto: "ℹ️ Clicando em 'Saiba Mais' você verá todos os detalhes do anúncio.", seletor: ".botao-saiba-mais:last-of-type" }
-      ];
-
-      let i = 0;
-
-      const moverERotacionar = () => {
-        document.querySelectorAll(".destacado-pelo-robo").forEach(el =>
-          el.classList.remove("destacado-pelo-robo")
-        );
-
-        const falaAtual = falas[i];
-        const alvo = falaAtual.seletor ? document.querySelector(falaAtual.seletor) : null;
-
-        setFalaRobo(falaAtual.texto);
-
-        if (alvo) {
-          alvo.classList.add("destacado-pelo-robo");
-          const rect = alvo.getBoundingClientRect();
-          const containerTop = containerRef.current?.getBoundingClientRect()?.top || 0;
-
-          setPosicaoRobo({
-            top: rect.top - containerTop + rect.height + 10 + window.scrollY,
-            left: rect.left + rect.width / 2
-          });
-
-          alvo.scrollIntoView({ behavior: "smooth", block: "center" });
-        } else {
-          // 🔁 Mesmo sem alvo, posiciona e scrolla até o topo
-          setPosicaoRobo({ top: 200 + window.scrollY, left: window.innerWidth / 2 - 100 });
-          if (i === 0) {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          } else {
-            window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-          }
-        }
-      };
-
-      setTimeout(() => {
-        moverERotacionar();
-
-        const intervalo = setInterval(() => {
-          i++;
-
-          while (i < falas.length && falas[i].seletor && !document.querySelector(falas[i].seletor)) {
-            i++;
-          }
-
-          if (i < falas.length) {
-            moverERotacionar();
-          } else {
-            clearInterval(intervalo);
-            setTimeout(() => {
-              document.querySelectorAll(".destacado-pelo-robo").forEach(el =>
-                el.classList.remove("destacado-pelo-robo")
-              );
-              setMostrarRobo(false);
-            }, 5000);
-          }
-        }, 6000);
-      }, 100);
-    }
-  }, [mostrarRobo]);
 
   useEffect(() => {
     const buscarAnuncios = async () => {
@@ -207,7 +122,7 @@ function Home() {
   const irParaLoginAnunciante = () => navigate("/login-anunciante");
 
   return (
-    <div className="home-container" ref={containerRef}>
+    <div className="home-container">
       <header className="home-header">
         <div className="barra-pesquisa-container">
           <img src={logoWebBuses} alt="Web Buses" className="logo-img" />
@@ -239,21 +154,6 @@ function Home() {
           <span onClick={() => setFiltroModelo("doubledecker")}>Double Decker</span>
         </div>
       </div>
-
-      {mostrarRobo && (
-        <div
-          className="robo-flutuante-container"
-          style={{
-            position: "absolute",
-            top: posicaoRobo.top,
-            left: posicaoRobo.left,
-            transform: "translate(-50%, -50%)"
-          }}
-        >
-          <img src={roboWebBuses} alt="Robô Web Buses" className="robo-img" />
-          <div className="fala-robo">{falaRobo}</div>
-        </div>
-      )}
 
       <section className="carrossel">
         <div className="slides">

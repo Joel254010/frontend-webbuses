@@ -279,9 +279,9 @@ body {
 .slide {
   display: none;
   width: 100%;
-  max-height: 480px; /* aumentado para desktop */
+  max-height: 480px;
   height: auto;
-  object-fit: contain; /* evita corte da imagem */
+  object-fit: contain;
   background-color: #88fe03;
   object-position: center;
   border-bottom: 3px solid #86e200;
@@ -456,118 +456,5 @@ body {
   .menu-opcoes span {
     width: 100%;
     font-size: 13px;
-  }
-}
-
-/* Robô Flutuante WebBuses */
-.robo-flutuante-container {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  z-index: 999999 !important; /* ⬅️ Força o topo absoluto */
-  animation: aparecer 0.5s ease-out;
-  pointer-events: none; /* ⬅️ Robô não atrapalha cliques */
-}
-
-.fala-robo {
-  background-color: #ffffff;
-  color: #111;
-  padding: 12px 16px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  font-size: 14px;
-  font-weight: 500;
-  max-width: 280px;
-  font-family: 'Montserrat', sans-serif;
-  position: relative;
-  z-index: 999999 !important; /* ⬅️ Fala sempre visível */
-  pointer-events: auto; /* ⬅️ Permite clicar se necessário */
-}
-
-.robo-img {
-  width: 100px;
-  height: auto;
-  animation: flutuar 3s ease-in-out infinite;
-  filter: drop-shadow(0 0 4px #88fe03);
-}
-
-.fala-robo {
-  background-color: #ffffff;
-  color: #111;
-  padding: 12px 16px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  font-size: 14px;
-  font-weight: 500;
-  max-width: 280px;
-  font-family: 'Montserrat', sans-serif;
-  position: relative;
-}
-
-.fala-robo::after {
-  content: "";
-  position: absolute;
-  bottom: -8px;
-  left: 20px;
-  border-width: 8px;
-  border-style: solid;
-  border-color: #ffffff transparent transparent transparent;
-}
-
-@keyframes flutuar {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-
-@keyframes aparecer {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (max-width: 600px) {
-  .robo-flutuante-container {
-    bottom: 16px;
-    right: 16px;
-    flex-direction: column;
-    align-items: flex-end;
-  }
-
-  .robo-img {
-    width: 80px;
-  }
-
-  .fala-robo {
-    font-size: 13px;
-    max-width: 90vw;
-  }
-}
-
-.destacado-pelo-robo {
-  position: relative;
-  z-index: 999;
-  box-shadow: 0 0 12px 4px #88fe03;
-  animation: pulsar-glow 1.5s infinite;
-  transition: box-shadow 0.3s;
-  border-radius: 8px;
-}
-
-@keyframes pulsar-glow {
-  0% {
-    box-shadow: 0 0 8px 2px #88fe03;
-  }
-  50% {
-    box-shadow: 0 0 16px 6px #88fe03;
-  }
-  100% {
-    box-shadow: 0 0 8px 2px #88fe03;
   }
 }
