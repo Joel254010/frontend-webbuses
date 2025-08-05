@@ -48,11 +48,11 @@ function EditarAnuncio() {
 
     try {
       const resposta = await fetch(`${API_URL}/anuncios/${id}`, {
-        method: "PATCH",
+        method: "PUT", // ✅ usa PUT agora
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formulario,
-          status: "pendente",
+          status: "pendente", // volta para análise
           dataEnvio: new Date().toISOString(),
         }),
       });
