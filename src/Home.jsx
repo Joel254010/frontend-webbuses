@@ -29,9 +29,9 @@ function Home() {
       try {
         const resposta = await fetch(`${API_URL}/anuncios`);
         const todos = await resposta.json();
-        console.log("🔍 Dados recebidos da API:", todos); // DEBUG
 
-        const lista = Array.isArray(todos) ? todos : [];
+        // Garante que pegamos apenas o array de anúncios
+        const lista = Array.isArray(todos.anuncios) ? todos.anuncios : [];
         const aprovados = lista.filter(anuncio => anuncio.status === "aprovado").reverse();
 
         setTodosAnuncios(aprovados);
