@@ -28,14 +28,13 @@ function Home() {
     const buscarAnuncios = async () => {
       try {
         const resposta = await fetch(`${API_URL}/anuncios`);
-        const todos = await resposta.json();
+        const dados = await resposta.json();
 
-        // Garante que pegamos apenas o array de anúncios
-        const lista = Array.isArray(todos.anuncios) ? todos.anuncios : [];
-        const aprovados = lista.filter(anuncio => anuncio.status === "aprovado").reverse();
+        // Garante que pegamos o array correto
+        const lista = Array.isArray(dados.anuncios) ? dados.anuncios : [];
 
-        setTodosAnuncios(aprovados);
-        setAnuncios(aprovados);
+        setTodosAnuncios(lista);
+        setAnuncios(lista);
       } catch (erro) {
         console.error("Erro ao buscar anúncios:", erro);
         setTodosAnuncios([]);
