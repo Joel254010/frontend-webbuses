@@ -12,7 +12,7 @@ function PainelAdmin() {
       const resposta = await fetch(`${API_URL}/anuncios/admin`);
       const dados = await resposta.json();
 
-      const lista = Array.isArray(dados.anuncios) ? dados.anuncios : [];
+      const lista = Array.isArray(dados) ? dados : [];
 
       const agrupados = {};
       lista.forEach((anuncio) => {
