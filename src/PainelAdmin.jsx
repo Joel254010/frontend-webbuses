@@ -1,3 +1,4 @@
+// src/PainelAdmin.jsx
 import React, { useState, useEffect } from "react";
 import logo from "./assets/logo-webbuses.png";
 import fundo from "./assets/bg-whatsapp.png";
@@ -6,14 +7,17 @@ import { API_URL } from "./config";
 function PainelAdmin() {
   const [anunciantes, setAnunciantes] = useState([]);
 
-  // 🔄 Função para carregar todos os anúncios agrupados por anunciante
+  // 🔄 Carregar anúncios agrupados por anunciante
   const carregarAnuncios = async () => {
     try {
       const resposta = await fetch(`${API_URL}/anuncios`);
-      const todos = await resposta.json();
+      const dados = await resposta.json();
+
+      // ✅ Garante que temos um array
+      const lista = Array.isArray(dados.anuncios) ? dados.anuncios : [];
 
       const agrupados = {};
-      todos.forEach((anuncio) => {
+      lista.forEach((anuncio) => {
         const telefoneBruto =
           anuncio.telefoneBruto || (anuncio.telefone ? anuncio.telefone.replace(/\D/g, "") : "");
         const chave = telefoneBruto || anuncio.email || anuncio.nomeAnunciante || anuncio.anunciante;
@@ -44,7 +48,6 @@ function PainelAdmin() {
     carregarAnuncios();
   }, []);
 
-  // ✅ Atualiza status no backend e recarrega tudo após
   const atualizarStatusAnuncio = async (anuncianteId, anuncioId, novoStatus) => {
     try {
       await fetch(`${API_URL}/anuncios/${anuncioId}`, {
@@ -60,51 +63,51 @@ function PainelAdmin() {
   };
 
   const excluirAnuncio = async (anuncianteId, anuncioId) => {
-  if (!anuncioId) {
-    alert("❌ ID do anúncio inválido.");
-    return;
-  }
-
-  const confirmar = window.confirm("Deseja realmente excluir este anúncio?");
-  if (!confirmar) return;
-
-  try {
-    const resposta = await fetch(`${API_URL}/anuncios/${anuncioId}`, { method: "DELETE" });
-
-    if (resposta.ok) {
-      await carregarAnuncios();
-      alert("✅ Anúncio excluído com sucesso.");
-    } else {
-      const erro = await resposta.json();
-      alert("❌ Erro ao excluir anúncio: " + (erro?.mensagem || "Erro desconhecido."));
+    if (!anuncioId) {
+      alert("❌ ID do anúncio inválido.");
+      return;
     }
-  } catch (erro) {
-    console.error("Erro ao excluir anúncio:", erro);
-    alert("❌ Erro ao conectar ao servidor.");
-  }
-};
 
-const excluirAnunciante = async (anuncianteId) => {
-  const confirmar = window.confirm("⚠️ Isso irá excluir TODOS os anúncios deste anunciante. Deseja continuar?");
-  if (!confirmar) return;
+    const confirmar = window.confirm("Deseja realmente excluir este anúncio?");
+    if (!confirmar) return;
 
-  try {
-    const anunciante = anunciantes.find((a) => a.id === anuncianteId);
-    if (anunciante) {
-      for (const anuncio of anunciante.anuncios) {
-        const id = anuncio._id || anuncio.id; // segurança dupla
-        if (id) {
-          await fetch(`${API_URL}/anuncios/${id}`, { method: "DELETE" });
+    try {
+      const resposta = await fetch(`${API_URL}/anuncios/${anuncioId}`, { method: "DELETE" });
+
+      if (resposta.ok) {
+        await carregarAnuncios();
+        alert("✅ Anúncio excluído com sucesso.");
+      } else {
+        const erro = await resposta.json();
+        alert("❌ Erro ao excluir anúncio: " + (erro?.mensagem || "Erro desconhecido."));
+      }
+    } catch (erro) {
+      console.error("Erro ao excluir anúncio:", erro);
+      alert("❌ Erro ao conectar ao servidor.");
+    }
+  };
+
+  const excluirAnunciante = async (anuncianteId) => {
+    const confirmar = window.confirm("⚠️ Isso irá excluir TODOS os anúncios deste anunciante. Deseja continuar?");
+    if (!confirmar) return;
+
+    try {
+      const anunciante = anunciantes.find((a) => a.id === anuncianteId);
+      if (anunciante) {
+        for (const anuncio of anunciante.anuncios) {
+          const id = anuncio._id || anuncio.id;
+          if (id) {
+            await fetch(`${API_URL}/anuncios/${id}`, { method: "DELETE" });
+          }
         }
       }
+      await carregarAnuncios();
+      alert("✅ Anunciante e todos os seus anúncios foram excluídos.");
+    } catch (erro) {
+      console.error("Erro ao excluir anunciante:", erro);
+      alert("❌ Erro ao excluir anunciante.");
     }
-    await carregarAnuncios();
-    alert("✅ Anunciante e todos os seus anúncios foram excluídos.");
-  } catch (erro) {
-    console.error("Erro ao excluir anunciante:", erro);
-    alert("❌ Erro ao excluir anunciante.");
-  }
-};
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("admin_logado");
@@ -140,31 +143,31 @@ const excluirAnunciante = async (anuncianteId) => {
                 <p><strong>Valor:</strong> {anuncio.valor}</p>
                 <p><strong>Status:</strong> {anuncio.status}</p>
                 {anuncio.status === "pendente" || anuncio.status === "aguardando pagamento" ? (
-  <div style={styles.botoes}>
-    <button onClick={() => atualizarStatusAnuncio(anunciante.id, anuncio._id, "aprovado")} style={styles.botaoAprovar}>Aprovar</button>
-    <button onClick={() => atualizarStatusAnuncio(anunciante.id, anuncio._id, "rejeitado")} style={styles.botaoRejeitar}>Rejeitar</button>
-    <button onClick={() => excluirAnuncio(anunciante.id, anuncio._id)} style={styles.botaoExcluir}>Excluir</button>
-  </div>
-) : anuncio.status === "aguardando venda" ? (
-  <div style={styles.botoes}>
-    <p style={{ fontWeight: "bold", color: "#ffc107" }}>🚧 Aguardando Confirmação de Venda</p>
-    <button onClick={() => atualizarStatusAnuncio(anunciante.id, anuncio._id, "vendido")} style={styles.botaoRejeitar}>Confirmar Venda</button>
-    <button onClick={() => excluirAnuncio(anunciante.id, anuncio._id)} style={styles.botaoExcluir}>Excluir</button>
-  </div>
-) : (
-  <>
-    <p style={
-      anuncio.status === "aprovado" ? styles.statusVerde :
-      anuncio.status === "vendido" ? { color: "#00e0ff", fontWeight: "bold" } :
-      styles.statusVermelho
-    }>
-      {anuncio.status === "aprovado" ? "✅ Aprovado" :
-       anuncio.status === "vendido" ? "✔️ Vendido" :
-       "❌ Rejeitado"}
-    </p>
-    <button onClick={() => excluirAnuncio(anunciante.id, anuncio._id)} style={styles.botaoExcluir}>Excluir</button>
-  </>
-)}
+                  <div style={styles.botoes}>
+                    <button onClick={() => atualizarStatusAnuncio(anunciante.id, anuncio._id, "aprovado")} style={styles.botaoAprovar}>Aprovar</button>
+                    <button onClick={() => atualizarStatusAnuncio(anunciante.id, anuncio._id, "rejeitado")} style={styles.botaoRejeitar}>Rejeitar</button>
+                    <button onClick={() => excluirAnuncio(anunciante.id, anuncio._id)} style={styles.botaoExcluir}>Excluir</button>
+                  </div>
+                ) : anuncio.status === "aguardando venda" ? (
+                  <div style={styles.botoes}>
+                    <p style={{ fontWeight: "bold", color: "#ffc107" }}>🚧 Aguardando Confirmação de Venda</p>
+                    <button onClick={() => atualizarStatusAnuncio(anunciante.id, anuncio._id, "vendido")} style={styles.botaoRejeitar}>Confirmar Venda</button>
+                    <button onClick={() => excluirAnuncio(anunciante.id, anuncio._id)} style={styles.botaoExcluir}>Excluir</button>
+                  </div>
+                ) : (
+                  <>
+                    <p style={
+                      anuncio.status === "aprovado" ? styles.statusVerde :
+                      anuncio.status === "vendido" ? { color: "#00e0ff", fontWeight: "bold" } :
+                      styles.statusVermelho
+                    }>
+                      {anuncio.status === "aprovado" ? "✅ Aprovado" :
+                       anuncio.status === "vendido" ? "✔️ Vendido" :
+                       "❌ Rejeitado"}
+                    </p>
+                    <button onClick={() => excluirAnuncio(anunciante.id, anuncio._id)} style={styles.botaoExcluir}>Excluir</button>
+                  </>
+                )}
               </div>
             </div>
           ))}
