@@ -8,39 +8,40 @@ function MeusAnuncios() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const dados = JSON.parse(localStorage.getItem("anunciante_logado")) || {};
-    const telefoneBruto = dados.telefoneBruto || "";
-    const email = dados.email || "";
+  const dados = JSON.parse(localStorage.getItem("anunciante_logado")) || {};
+  const telefoneBruto = (dados.telefoneBruto || dados.telefone || "").replace(/\D/g, "");
+  const email = (dados.email || "").toLowerCase();
 
-    const carregarMeusAnuncios = async () => {
-      try {
-        const resposta = await fetch(`${API_URL}/anuncios`);
-const dados = await resposta.json();
-const lista = Array.isArray(dados.anuncios) ? dados.anuncios : [];
+  const carregarMeusAnuncios = async () => {
+    try {
+      const resposta = await fetch(`${API_URL}/anuncios`);
+      const dados = await resposta.json();
+      const lista = Array.isArray(dados.anuncios) ? dados.anuncios : [];
 
-const meus = lista.filter((anuncio) => {
-  const tel = anuncio.telefoneBruto || anuncio.telefone?.replace(/\D/g, "");
-  return (
-    (telefoneBruto && tel === telefoneBruto) ||
-    (email && anuncio.email === email)
-  );
-});
-
-        setAnuncios(
-          meus.filter(
-            (a) =>
-              a.status === "aprovado" ||
-              a.status === "vendido" ||
-              a.status === "pendente_venda"
-          )
+      const meus = lista.filter((anuncio) => {
+        const tel = (anuncio.telefoneBruto || anuncio.telefone || "").replace(/\D/g, "");
+        const emailAnuncio = (anuncio.email || "").toLowerCase();
+        return (
+          (telefoneBruto && tel === telefoneBruto) ||
+          (email && emailAnuncio === email)
         );
-      } catch (erro) {
-        console.error("Erro ao carregar anúncios:", erro);
-      }
-    };
+      });
 
-    carregarMeusAnuncios();
-  }, []);
+      setAnuncios(
+        meus.filter(
+          (a) =>
+            a.status === "aprovado" ||
+            a.status === "vendido" ||
+            a.status === "pendente_venda"
+        )
+      );
+    } catch (erro) {
+      console.error("Erro ao carregar anúncios:", erro);
+    }
+  };
+
+  carregarMeusAnuncios();
+}, []);
 
   const handleEditar = (id) => {
     navigate(`/editar-anuncio/${id}`);
