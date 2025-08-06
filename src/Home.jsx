@@ -150,13 +150,13 @@ function Home() {
       <div className="menu-carrocerias">
         <p className="menu-titulo">Modelo de Carrocerias:</p>
         <div className="menu-opcoes">
-          <span onClick={() => setFiltroModelo("utilitarios")}>Utilitários</span>
-          <span onClick={() => setFiltroModelo("micro")}>Micro-Ônibus</span>
-          <span onClick={() => setFiltroModelo("4x2")}>Ônibus 4x2</span>
-          <span onClick={() => setFiltroModelo("6x2")}>Ônibus 6x2</span>
-          <span onClick={() => setFiltroModelo("urbano")}>Ônibus Urbano</span>
-          <span onClick={() => setFiltroModelo("lowdriver")}>Low Driver</span>
-          <span onClick={() => setFiltroModelo("doubledecker")}>Double Decker</span>
+          <span onClick={() => setFiltroModelo("Utilitários")}>Utilitários</span>
+          <span onClick={() => setFiltroModelo("Micro-Ônibus [Urbano e Rodoviário]")}>Micro-Ônibus</span>
+          <span onClick={() => setFiltroModelo("Ônibus 4x2 [Urbano e Rodoviário]")}>Ônibus 4x2</span>
+          <span onClick={() => setFiltroModelo("Ônibus Trucado")}>Ônibus 6x2</span>
+          <span onClick={() => setFiltroModelo("Ônibus Urbano")}>Ônibus Urbano</span>
+          <span onClick={() => setFiltroModelo("Ônibus Low Driver [6x2 e 8x2]")}>Low Driver</span>
+          <span onClick={() => setFiltroModelo("Ônibus Double Decker [6x2 e 8x2]")}>Double Decker</span>
         </div>
       </div>
 
