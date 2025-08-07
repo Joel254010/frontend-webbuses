@@ -1,4 +1,5 @@
-// src/Home.jsx
+// ✅ Home.jsx 100% funcional e revisado com filtro por modelo atualizado
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Home.css";
@@ -29,10 +30,7 @@ function Home() {
       try {
         const resposta = await fetch(`${API_URL}/anuncios`);
         const dados = await resposta.json();
-
-        // Garante que pegamos o array correto
         const lista = Array.isArray(dados.anuncios) ? dados.anuncios : [];
-
         setTodosAnuncios(lista);
         setAnuncios(lista);
       } catch (erro) {
@@ -47,10 +45,10 @@ function Home() {
   useEffect(() => {
     let filtrados = todosAnuncios;
     if (filtroModelo) {
-  filtrados = filtrados.filter(anuncio =>
-    (anuncio.slugModelo || "").includes(filtroModelo.toLowerCase())
-  );
-}
+      filtrados = filtrados.filter(anuncio =>
+        (anuncio.slugModelo || "").toLowerCase() === filtroModelo.toLowerCase()
+      );
+    }
 
     if (busca) {
       filtrados = filtrados.filter(anuncio => {
@@ -64,6 +62,7 @@ function Home() {
         return removerAcentos(campos).includes(removerAcentos(busca));
       });
     }
+
     setAnuncios(filtrados);
     setPaginaAtual(1);
   }, [filtroModelo, busca, todosAnuncios]);
@@ -149,18 +148,21 @@ function Home() {
       </header>
 
       <p className="menu-titulo">Modelo de Carrocerias:</p>
-<div className="menu-opcoes">
-  <span onClick={() => setFiltroModelo("utilitarios")}>Utilitários</span>
-<span onClick={() => setFiltroModelo("micro-onibus")}>Micro-Ônibus</span>
-<span onClick={() => setFiltroModelo("onibus-4x2")}>Ônibus 4x2</span>
-<span onClick={() => setFiltroModelo("onibus-6x2")}>Ônibus 6x2</span>
-<span onClick={() => setFiltroModelo("onibus-urbano")}>Ônibus Urbano</span>
-<span onClick={() => setFiltroModelo("low-driver")}>Low Driver</span>
-<span onClick={() => setFiltroModelo("double-decker")}>Double Decker</span>
-  {filtroModelo && (
-    <span className="botao-voltar-modelos" onClick={() => setFiltroModelo(null)}>🔙 Voltar</span>
-  )}
-</div>
+      <div className="menu-opcoes">
+        <span onClick={() => setFiltroModelo("utilitarios")}>Utilitários</span>
+        <span onClick={() => setFiltroModelo("micro-onibus")}>Micro-Ônibus</span>
+        <span onClick={() => setFiltroModelo("4x2")}>Ônibus 4x2</span>
+        <span onClick={() => setFiltroModelo("6x2")}>Ônibus 6x2</span>
+        <span onClick={() => setFiltroModelo("urbano")}>Ônibus Urbano</span>
+        <span onClick={() => setFiltroModelo("low-driver")}>Low Driver</span>
+        <span onClick={() => setFiltroModelo("double-decker")}>Double Decker</span>
+      </div>
+
+      {filtroModelo && (
+        <span className="botao-voltar-modelos" onClick={() => setFiltroModelo(null)}>
+          🔙 Voltar
+        </span>
+      )}
 
       <section className="carrossel">
         <div className="slides">
