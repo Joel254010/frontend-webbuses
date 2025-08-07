@@ -20,8 +20,8 @@ function SelecionarModeloOnibus() {
     { nome: "Ônibus 4x2", imagem: quatroPorDois, slug: "4x2" },
     { nome: "Ônibus 6x2", imagem: seisPorDois, slug: "6x2" },
     { nome: "Ônibus Urbano", imagem: urbano, slug: "urbano" },
-    { nome: "Low Driver (6x2 e 8x2)", imagem: lowdriver, slug: "low-driver" },
-    { nome: "Double Decker (6x2 e 8x2)", imagem: doubledecker, slug: "double-decker" },
+    { nome: "Low Driver (6x2 e 8x2)", imagem: lowdriver, slug: "lowdriver" },
+    { nome: "Double Decker (6x2 e 8x2)", imagem: doubledecker, slug: "doubledecker" },
   ];
 
   return (
