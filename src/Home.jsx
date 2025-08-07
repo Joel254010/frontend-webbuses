@@ -153,8 +153,8 @@ function Home() {
   <span onClick={() => setFiltroModelo("onibus-4x2")}>Ônibus 4x2</span>
   <span onClick={() => setFiltroModelo("onibus-6x2")}>Ônibus 6x2</span>
   <span onClick={() => setFiltroModelo("onibus-urbano")}>Ônibus Urbano</span>
-  <span onClick={() => setFiltroModelo("low-driver")}>Low Driver</span>
-  <span onClick={() => setFiltroModelo("double-decker")}>Double Decker</span>
+  <span onClick={() => setFiltroModelo("lowdriver")}>Low Driver</span>
+  <span onClick={() => setFiltroModelo("doubledecker")}>Double Decker</span>
 </div>
 
       {filtroModelo && (
