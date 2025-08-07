@@ -45,9 +45,15 @@ function Home() {
   useEffect(() => {
     let filtrados = todosAnuncios;
     if (filtroModelo) {
-      filtrados = filtrados.filter(anuncio =>
-        (anuncio.slugModelo || "").toLowerCase() === filtroModelo.toLowerCase()
-      );
+      filtrados = filtrados.filter(anuncio => {
+  const slug = (anuncio.tipoModelo || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
+  return slug === filtroModelo;
+});
     }
 
     if (busca) {
@@ -154,8 +160,8 @@ function Home() {
   <span onClick={() => setFiltroModelo("onibus-4x2")}>Ônibus 4x2</span>
   <span onClick={() => setFiltroModelo("onibus-6x2")}>Ônibus 6x2</span>
   <span onClick={() => setFiltroModelo("onibus-urbano")}>Ônibus Urbano</span>
-  <span onClick={() => setFiltroModelo("onibus-low-driver")}>Low Driver</span>
-  <span onClick={() => setFiltroModelo("onibus-double-decker")}>Double Decker</span>
+  <span onClick={() => setFiltroModelo("low-driver")}>Low Driver</span>
+  <span onClick={() => setFiltroModelo("double-decker")}>Double Decker</span>
 </div>
 
       {filtroModelo && (
