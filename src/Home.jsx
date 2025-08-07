@@ -47,10 +47,12 @@ function Home() {
   useEffect(() => {
     let filtrados = todosAnuncios;
     if (filtroModelo) {
-      filtrados = filtrados.filter(anuncio =>
-        removerAcentos(anuncio.tipoModelo || "").includes(removerAcentos(filtroModelo))
-      );
-    }
+  const chave = removerAcentos(filtroModelo);
+  filtrados = filtrados.filter(anuncio =>
+    removerAcentos(anuncio.tipoModelo || "").includes(chave)
+  );
+}
+    
     if (busca) {
       filtrados = filtrados.filter(anuncio => {
         const campos = [
@@ -147,18 +149,19 @@ function Home() {
         </button>
       </header>
 
-      <div className="menu-carrocerias">
-        <p className="menu-titulo">Modelo de Carrocerias:</p>
-        <div className="menu-opcoes">
-          <span onClick={() => setFiltroModelo("Utilitários")}>Utilitários</span>
-          <span onClick={() => setFiltroModelo("Micro-Ônibus [Urbano e Rodoviário]")}>Micro-Ônibus</span>
-          <span onClick={() => setFiltroModelo("Ônibus 4x2 [Urbano e Rodoviário]")}>Ônibus 4x2</span>
-          <span onClick={() => setFiltroModelo("Ônibus Trucado")}>Ônibus 6x2</span>
-          <span onClick={() => setFiltroModelo("Ônibus Urbano")}>Ônibus Urbano</span>
-          <span onClick={() => setFiltroModelo("Ônibus Low Driver [6x2 e 8x2]")}>Low Driver</span>
-          <span onClick={() => setFiltroModelo("Ônibus Double Decker [6x2 e 8x2]")}>Double Decker</span>
-        </div>
-      </div>
+      <p className="menu-titulo">Modelo de Carrocerias:</p>
+<div className="menu-opcoes">
+  <span onClick={() => setFiltroModelo("utilitarios")}>Utilitários</span>
+  <span onClick={() => setFiltroModelo("micro")}>Micro-Ônibus</span>
+  <span onClick={() => setFiltroModelo("4x2")}>Ônibus 4x2</span>
+  <span onClick={() => setFiltroModelo("6x2")}>Ônibus 6x2</span>
+  <span onClick={() => setFiltroModelo("urbano")}>Ônibus Urbano</span>
+  <span onClick={() => setFiltroModelo("low driver")}>Low Driver</span>
+  <span onClick={() => setFiltroModelo("double decker")}>Double Decker</span>
+  {filtroModelo && (
+    <span className="botao-voltar-modelos" onClick={() => setFiltroModelo(null)}>🔙 Voltar</span>
+  )}
+</div>
 
       <section className="carrossel">
         <div className="slides">
