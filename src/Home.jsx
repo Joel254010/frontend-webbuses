@@ -6,6 +6,7 @@ import "./Home.css";
 import logoWebBuses from "./assets/logo-webbuses.png";
 import banner1 from "./assets/banner1.png";
 import banner2 from "./assets/banner2.png";
+import banner2 from "./assets/banner3.png";
 import { API_URL } from "./config";
 
 function removerAcentos(str) {
@@ -167,6 +168,7 @@ function Home() {
         <div className="slides">
           <img src={banner1} alt="Banner 1" className="slide ativo" />
           <img src={banner2} alt="Banner 2" className="slide" />
+          <img src={banner3} alt="Banner 3" className="slide" />
         </div>
       </section>
 
