@@ -43,35 +43,28 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    let filtrados = todosAnuncios;
-    if (filtroModelo) {
-      filtrados = filtrados.filter(anuncio => {
-  const slug = (anuncio.tipoModelo || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "");
-  return slug === filtroModelo;
-});
-    }
+  let filtrados = todosAnuncios;
 
-    if (busca) {
-      filtrados = filtrados.filter(anuncio => {
-        const campos = [
-          anuncio.tipoModelo,
-          anuncio.modeloCarroceria,
-          anuncio.modeloChassis,
-          anuncio.fabricanteCarroceria,
-          anuncio.fabricanteChassis
-        ].join(" ");
-        return removerAcentos(campos).includes(removerAcentos(busca));
-      });
-    }
+  if (filtroModelo) {
+    filtrados = filtrados.filter(anuncio => anuncio.slugModelo === filtroModelo);
+  }
 
-    setAnuncios(filtrados);
-    setPaginaAtual(1);
-  }, [filtroModelo, busca, todosAnuncios]);
+  if (busca) {
+    filtrados = filtrados.filter(anuncio => {
+      const campos = [
+        anuncio.tipoModelo,
+        anuncio.modeloCarroceria,
+        anuncio.modeloChassis,
+        anuncio.fabricanteCarroceria,
+        anuncio.fabricanteChassis
+      ].join(" ");
+      return removerAcentos(campos).includes(removerAcentos(busca));
+    });
+  }
+
+  setAnuncios(filtrados);
+  setPaginaAtual(1);
+}, [filtroModelo, busca, todosAnuncios]);
 
   useEffect(() => {
     const slides = document.querySelectorAll(".slide");
