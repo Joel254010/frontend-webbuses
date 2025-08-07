@@ -47,11 +47,9 @@ function Home() {
   useEffect(() => {
     let filtrados = todosAnuncios;
     if (filtroModelo) {
-  const chave = removerAcentos(filtroModelo).toLowerCase();
-  filtrados = filtrados.filter(anuncio => {
-    const tipo = removerAcentos(anuncio.tipoModelo || "").toLowerCase();
-    return tipo.includes(chave);
-  });
+  filtrados = filtrados.filter(anuncio =>
+    (anuncio.slugModelo || "").includes(filtroModelo.toLowerCase())
+  );
 }
 
     if (busca) {
@@ -153,12 +151,12 @@ function Home() {
       <p className="menu-titulo">Modelo de Carrocerias:</p>
 <div className="menu-opcoes">
   <span onClick={() => setFiltroModelo("utilitarios")}>Utilitários</span>
-<span onClick={() => setFiltroModelo("micro")}>Micro-Ônibus</span>
-<span onClick={() => setFiltroModelo("4x2")}>Ônibus 4x2</span>
-<span onClick={() => setFiltroModelo("6x2")}>Ônibus 6x2</span>
-<span onClick={() => setFiltroModelo("urbano")}>Ônibus Urbano</span>
-<span onClick={() => setFiltroModelo("low driver")}>Low Driver</span>
-<span onClick={() => setFiltroModelo("double decker")}>Double Decker</span>
+<span onClick={() => setFiltroModelo("micro-onibus")}>Micro-Ônibus</span>
+<span onClick={() => setFiltroModelo("onibus-4x2")}>Ônibus 4x2</span>
+<span onClick={() => setFiltroModelo("onibus-6x2")}>Ônibus 6x2</span>
+<span onClick={() => setFiltroModelo("onibus-urbano")}>Ônibus Urbano</span>
+<span onClick={() => setFiltroModelo("low-driver")}>Low Driver</span>
+<span onClick={() => setFiltroModelo("double-decker")}>Double Decker</span>
   {filtroModelo && (
     <span className="botao-voltar-modelos" onClick={() => setFiltroModelo(null)}>🔙 Voltar</span>
   )}
