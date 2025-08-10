@@ -13,6 +13,19 @@ function removerAcentos(str) {
   return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
+// ✅ gera slugModelo no front caso a API não envie (virtual não vem na listagem leve)
+function slugModeloFromTipo(tipo = "") {
+  const raw = removerAcentos(String(tipo).toLowerCase());
+  if (raw.includes("utilit")) return "utilitarios";
+  if (raw.includes("micro")) return "micro-onibus";
+  if (raw.includes("4x2"))   return "onibus-4x2";
+  if (raw.includes("6x2"))   return "onibus-6x2";
+  if (raw.includes("urbano"))return "onibus-urbano";
+  if (raw.includes("low"))   return "lowdriver";
+  if (raw.includes("double"))return "doubledecker";
+  return raw.replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+}
+
 function Home() {
   const navigate = useNavigate();
   const [paginaAtual, setPaginaAtual] = useState(1);
@@ -31,7 +44,14 @@ function Home() {
       try {
         const resposta = await fetch(`${API_URL}/anuncios`);
         const dados = await resposta.json();
-        const lista = Array.isArray(dados.anuncios) ? dados.anuncios : [];
+
+        // ✅ garante slugModelo e usa capa oficial
+        const lista = (Array.isArray(dados.anuncios) ? dados.anuncios : []).map((a) => ({
+          ...a,
+          slugModelo: a.slugModelo ?? slugModeloFromTipo(a.tipoModelo || ""),
+          capaUrl: a.capaUrl || a.imagens?.[0] || "",
+        }));
+
         setTodosAnuncios(lista);
         setAnuncios(lista);
       } catch (erro) {
@@ -175,7 +195,6 @@ function Home() {
       <section className="hero">
         <div className="hero-content">
           <h2>Encontre o ônibus ideal para seu negócio</h2>
-          <p>Venda e compre ônibus e utilitários com segurança e agilidade.</p>
         </div>
       </section>
 
