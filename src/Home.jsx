@@ -13,6 +13,19 @@ function removerAcentos(str) {
   return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
+// Fallback: calcula slugModelo a partir do tipoModelo (se o backend não trouxer)
+function slugModeloFromTipo(tipo = "") {
+  const raw = removerAcentos(String(tipo).toLowerCase());
+  if (raw.includes("utilit")) return "utilitarios";
+  if (raw.includes("micro")) return "micro-onibus";
+  if (raw.includes("4x2")) return "onibus-4x2";
+  if (raw.includes("6x2")) return "onibus-6x2";
+  if (raw.includes("urbano")) return "onibus-urbano";
+  if (raw.includes("low")) return "lowdriver";
+  if (raw.includes("double")) return "doubledecker";
+  return raw.replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+}
+
 function Home() {
   const navigate = useNavigate();
   const [paginaAtual, setPaginaAtual] = useState(1);
@@ -29,9 +42,21 @@ function Home() {
   useEffect(() => {
     const buscarAnuncios = async () => {
       try {
-        const resposta = await fetch(`${API_URL}/anuncios`);
+        // ✅ garante chamada ao backend correto (com /api)
+        const BASE = API_URL || "https://backend-webbuses.onrender.com/api";
+        const resposta = await fetch(`${BASE}/anuncios?limit=12`, {
+          headers: { Accept: "application/json" },
+        });
         const dados = await resposta.json();
-        const lista = Array.isArray(dados.anuncios) ? dados.anuncios : [];
+
+        // Garante array e injeta slugModelo se faltar; usa capaUrl SEMPRE
+        const lista = (Array.isArray(dados.anuncios) ? dados.anuncios : []).map((a) => ({
+          ...a,
+          slugModelo: a.slugModelo ?? slugModeloFromTipo(a.tipoModelo || ""),
+          // usa capa oficial; mantém fallback para casos legados
+          capaUrl: a.capaUrl || a.imagens?.[0] || "",
+        }));
+
         setTodosAnuncios(lista);
         setAnuncios(lista);
       } catch (erro) {
@@ -44,34 +69,34 @@ function Home() {
   }, []);
 
   useEffect(() => {
-  let filtrados = todosAnuncios;
+    let filtrados = todosAnuncios;
 
-  if (filtroModelo) {
-    filtrados = filtrados.filter(anuncio => anuncio.slugModelo === filtroModelo);
-  }
+    if (filtroModelo) {
+      filtrados = filtrados.filter((anuncio) => anuncio.slugModelo === filtroModelo);
+    }
 
-  if (busca) {
-    filtrados = filtrados.filter(anuncio => {
-      const campos = [
-        anuncio.tipoModelo,
-        anuncio.modeloCarroceria,
-        anuncio.modeloChassis,
-        anuncio.fabricanteCarroceria,
-        anuncio.fabricanteChassis
-      ].join(" ");
-      return removerAcentos(campos).includes(removerAcentos(busca));
-    });
-  }
+    if (busca) {
+      filtrados = filtrados.filter((anuncio) => {
+        const campos = [
+          anuncio.tipoModelo,
+          anuncio.modeloCarroceria,
+          anuncio.modeloChassis,
+          anuncio.fabricanteCarroceria,
+          anuncio.fabricanteChassis,
+        ].join(" ");
+        return removerAcentos(campos).includes(removerAcentos(busca));
+      });
+    }
 
-  setAnuncios(filtrados);
-  setPaginaAtual(1);
-}, [filtroModelo, busca, todosAnuncios]);
+    setAnuncios(filtrados);
+    setPaginaAtual(1);
+  }, [filtroModelo, busca, todosAnuncios]);
 
   useEffect(() => {
     const slides = document.querySelectorAll(".slide");
     let index = 0;
     const intervalo = setInterval(() => {
-      slides.forEach(slide => slide.classList.remove("ativo"));
+      slides.forEach((slide) => slide.classList.remove("ativo"));
       index = (index + 1) % slides.length;
       slides[index].classList.add("ativo");
     }, 3000);
@@ -89,14 +114,14 @@ function Home() {
       alert("Você já curtiu esse anúncio.");
       return;
     }
-    setCurtidas(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+    setCurtidas((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
     const atualizado = { ...curtidasSalvas, [id]: true };
     setCurtido(atualizado);
     localStorage.setItem("curtidas_webbuses", JSON.stringify(atualizado));
   };
 
   const toggleMenuCompartilhar = (id) => {
-    setMenuCompartilharAtivo(prev => (prev === id ? null : id));
+    setMenuCompartilharAtivo((prev) => (prev === id ? null : id));
   };
 
   const copiarLink = (id) => {
@@ -148,15 +173,15 @@ function Home() {
       </header>
 
       <p className="menu-titulo">Modelo de Carrocerias:</p>
-<div className="menu-opcoes">
-  <span onClick={() => setFiltroModelo("utilitarios")}>Utilitários</span>
-  <span onClick={() => setFiltroModelo("micro-onibus")}>Micro-Ônibus</span>
-  <span onClick={() => setFiltroModelo("onibus-4x2")}>Ônibus 4x2</span>
-  <span onClick={() => setFiltroModelo("onibus-6x2")}>Ônibus 6x2</span>
-  <span onClick={() => setFiltroModelo("onibus-urbano")}>Ônibus Urbano</span>
-  <span onClick={() => setFiltroModelo("lowdriver")}>Low Driver</span>
-  <span onClick={() => setFiltroModelo("doubledecker")}>Double Decker</span>
-</div>
+      <div className="menu-opcoes">
+        <span onClick={() => setFiltroModelo("utilitarios")}>Utilitários</span>
+        <span onClick={() => setFiltroModelo("micro-onibus")}>Micro-Ônibus</span>
+        <span onClick={() => setFiltroModelo("onibus-4x2")}>Ônibus 4x2</span>
+        <span onClick={() => setFiltroModelo("onibus-6x2")}>Ônibus 6x2</span>
+        <span onClick={() => setFiltroModelo("onibus-urbano")}>Ônibus Urbano</span>
+        <span onClick={() => setFiltroModelo("lowdriver")}>Low Driver</span>
+        <span onClick={() => setFiltroModelo("doubledecker")}>Double Decker</span>
+      </div>
 
       {filtroModelo && (
         <span className="botao-voltar-modelos" onClick={() => setFiltroModelo(null)}>
@@ -184,17 +209,29 @@ function Home() {
         <div className="grid-anuncios">
           {anunciosExibidos.map((anuncio) => (
             <div className="card-anuncio" key={anuncio._id}>
-              <img src={anuncio.imagens?.[0] || ""} className="imagem-capa" alt={anuncio.modeloCarroceria} />
+              {/* ✅ capa oficial sempre */}
+              <img
+                src={anuncio.capaUrl}
+                className="imagem-capa"
+                alt={anuncio.modeloCarroceria || "Ônibus"}
+                loading="lazy"
+                decoding="async"
+              />
               <div className="info-anuncio">
-                <h3>{anuncio.fabricanteCarroceria} {anuncio.modeloCarroceria}</h3>
+                <h3>
+                  {anuncio.fabricanteCarroceria} {anuncio.modeloCarroceria}
+                </h3>
                 <p className="valor">
                   {Number(anuncio.valor).toLocaleString("pt-BR", {
                     style: "currency",
                     currency: "BRL",
                   })}
                 </p>
-                <span>{anuncio.kilometragem} km</span><br />
-                <span>{anuncio.localizacao?.cidade} - {anuncio.localizacao?.estado}</span>
+                <span>{anuncio.kilometragem} km</span>
+                <br />
+                <span>
+                  {anuncio.localizacao?.cidade} - {anuncio.localizacao?.estado}
+                </span>
                 <div className="acoes-anuncio">
                   <Link to={`/onibus/${anuncio._id}`}>
                     <button className="botao-saiba-mais">Saiba Mais</button>
