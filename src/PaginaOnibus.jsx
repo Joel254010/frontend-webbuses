@@ -8,16 +8,16 @@ const PaginaOnibus = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // ✅ mostra a capa oficial imediatamente (sem esperar o JSON)
+  // capa oficial aparece imediatamente
   const capaUrl = `${API_URL}/anuncios/${id}/capa`;
 
   const [onibus, setOnibus] = useState(null);
-  const [imagemAtual, setImagemAtual] = useState(() => capaUrl);
-  const [miniaturas, setMiniaturas] = useState([]);
+  const [imagemAtual, setImagemAtual] = useState(capaUrl);
+  const [miniaturas, setMiniaturas] = useState([capaUrl]);
   const [loading, setLoading] = useState(true);
 
-  // quando trocar de anúncio, já troca a capa imediata
   useEffect(() => {
+    // reset ao trocar de anúncio
     setImagemAtual(capaUrl);
     setMiniaturas([capaUrl]);
     setOnibus(null);
@@ -26,26 +26,31 @@ const PaginaOnibus = () => {
     const ctrl = new AbortController();
     (async () => {
       try {
-        const r = await fetch(`${API_URL}/anuncios/${id}`, {
+        // ⚡ pega só os metadados (sem array de imagens/base64)
+        const r = await fetch(`${API_URL}/anuncios/${id}/meta`, {
           signal: ctrl.signal,
           headers: { Accept: "application/json" },
         });
         if (!r.ok) throw new Error("Anúncio não encontrado");
-        const anuncio = await r.json();
+        const meta = await r.json();
+        setOnibus(meta);
 
-        setOnibus(anuncio);
-
-        // ✅ miniaturas: usa as do anúncio se existirem, senão mantém só a capa
-        const thumbs =
-          Array.isArray(anuncio.imagens) && anuncio.imagens.length > 0
-            ? anuncio.imagens
-            : [capaUrl];
-        setMiniaturas(thumbs);
-
-        // mantém a capa exibida; se quiser, pode forçar a primeira imagem do anúncio:
-        // setImagemAtual(thumbs[0]);
+        // monta as thumbs por índice; download paralelo e cacheado
+        const count = Number(meta.imagensCount || 0);
+        if (count > 0) {
+          const thumbs = Array.from(
+            { length: count },
+            (_, i) => `${API_URL}/anuncios/${id}/foto/${i}`
+          );
+          setMiniaturas(thumbs);
+          // se quiser já trocar a principal para a primeira foto:
+          // setImagemAtual(thumbs[0]);
+        } else {
+          // sem galeria -> fica só a capa
+          setMiniaturas([capaUrl]);
+        }
       } catch (e) {
-        console.error("❌ Erro ao carregar anúncio:", e);
+        console.error("❌ Erro ao carregar meta do anúncio:", e);
         setOnibus(null);
       } finally {
         setLoading(false);
@@ -58,21 +63,13 @@ const PaginaOnibus = () => {
   const handleVoltar = () => {
     const params = new URLSearchParams(window.location.search);
     const veioDoPreview = params.get("from") === "preview";
-
-    if (veioDoPreview) {
-      navigate("/");
-    } else if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate("/");
-    }
+    if (veioDoPreview) navigate("/");
+    else if (window.history.length > 1) navigate(-1);
+    else navigate("/");
   };
 
-  // 🔗 WhatsApp (funciona mesmo enquanto o JSON não chegou por completo)
-  const modelo =
-    (onibus?.fabricanteCarroceria || "") +
-    " " +
-    (onibus?.modeloCarroceria || "");
+  // WhatsApp
+  const modelo = `${onibus?.fabricanteCarroceria || ""} ${onibus?.modeloCarroceria || ""}`.trim();
   const telefoneBruto = (onibus?.telefoneBruto || "").replace(/\D/g, "");
   const mensagem = `Olá! Gostaria de maiores informações sobre o ônibus ${modelo} anunciado no Web Buses.`;
   const linkWhatsapp =
@@ -83,7 +80,7 @@ const PaginaOnibus = () => {
   return (
     <div className="pagina-onibus">
       <div className="galeria">
-        {/* ✅ imagem principal aparece na hora (capaUrl), sem esperar a API */}
+        {/* capa/atual sempre instantânea */}
         <img
           src={imagemAtual}
           alt={onibus?.modeloCarroceria || "Ônibus"}
@@ -112,13 +109,14 @@ const PaginaOnibus = () => {
           {(onibus?.modeloCarroceria || "").trim()}
         </h1>
 
-        {/* enquanto carrega, mostra placeholders simples */}
         {loading && (
           <p style={{ color: "white", marginTop: 8 }}>⏳ Carregando detalhes…</p>
         )}
 
         {!loading && !onibus && (
-          <p style={{ color: "white", marginTop: 8 }}>🚫 Anúncio não encontrado.</p>
+          <p style={{ color: "white", marginTop: 8 }}>
+            🚫 Anúncio não encontrado.
+          </p>
         )}
 
         {onibus && (
@@ -127,55 +125,25 @@ const PaginaOnibus = () => {
               <h2 className="secao-titulo">🛠️ Detalhes Técnicos</h2>
               <div className="grid-detalhes">
                 <div className="card-detalhe">
-                  <span>
-                    <strong>Tipo de Modelo:</strong>{" "}
-                    {onibus.tipoModelo || "Não informado"}
-                  </span>
-                  <span>
-                    <strong>Fabricante da Carroceria:</strong>{" "}
-                    {onibus.fabricanteCarroceria}
-                  </span>
-                  <span>
-                    <strong>Modelo da Carroceria:</strong>{" "}
-                    {onibus.modeloCarroceria}
-                  </span>
-                  <span>
-                    <strong>Fabricante do Chassis:</strong>{" "}
-                    {onibus.fabricanteChassis}
-                  </span>
-                  <span>
-                    <strong>Modelo do Chassis:</strong>{" "}
-                    {onibus.modeloChassis}
-                  </span>
-                  <span>
-                    <strong>Ano/Modelo:</strong> {onibus.anoModelo}
-                  </span>
-                  <span>
-                    <strong>Localização:</strong>{" "}
-                    {onibus.localizacao?.cidade} - {onibus.localizacao?.estado}
-                  </span>
+                  <span><strong>Tipo de Modelo:</strong> {onibus.tipoModelo || "Não informado"}</span>
+                  <span><strong>Fabricante da Carroceria:</strong> {onibus.fabricanteCarroceria}</span>
+                  <span><strong>Modelo da Carroceria:</strong> {onibus.modeloCarroceria}</span>
+                  <span><strong>Fabricante do Chassis:</strong> {onibus.fabricanteChassis}</span>
+                  <span><strong>Modelo do Chassis:</strong> {onibus.modeloChassis}</span>
+                  <span><strong>Ano/Modelo:</strong> {onibus.anoModelo}</span>
+                  <span><strong>Localização:</strong> {onibus.localizacao?.cidade} - {onibus.localizacao?.estado}</span>
                 </div>
                 <div className="card-detalhe">
-                  <span>
-                    <strong>Rodagem:</strong> {onibus.kilometragem} km
-                  </span>
-                  <span>
-                    <strong>Poltronas:</strong> {onibus.lugares}
-                  </span>
-                  <span>
-                    <strong>Cor predominante:</strong> {onibus.cor}
-                  </span>
+                  <span><strong>Rodagem:</strong> {onibus.kilometragem} km</span>
+                  <span><strong>Poltronas:</strong> {onibus.lugares}</span>
+                  <span><strong>Cor predominante:</strong> {onibus.cor}</span>
                 </div>
               </div>
             </section>
 
             <section className="bloco-contato">
               <p className="preco">
-                💰{" "}
-                {Number(onibus.valor).toLocaleString("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                })}
+                💰 {Number(onibus.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </p>
               <p className="anunciante">📞 Anunciante: {onibus.nomeAnunciante}</p>
               {linkWhatsapp ? (
@@ -205,9 +173,7 @@ const PaginaOnibus = () => {
           </>
         )}
 
-        <button onClick={handleVoltar} className="btn-voltar">
-          ← Voltar
-        </button>
+        <button onClick={handleVoltar} className="btn-voltar">← Voltar</button>
       </div>
     </div>
   );
