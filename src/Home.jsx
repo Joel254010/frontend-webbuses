@@ -44,28 +44,28 @@ function Home() {
   }, []);
 
   useEffect(() => {
-  let filtrados = todosAnuncios;
+    let filtrados = todosAnuncios;
 
-  if (filtroModelo) {
-    filtrados = filtrados.filter(anuncio => anuncio.slugModelo === filtroModelo);
-  }
+    if (filtroModelo) {
+      filtrados = filtrados.filter(anuncio => anuncio.slugModelo === filtroModelo);
+    }
 
-  if (busca) {
-    filtrados = filtrados.filter(anuncio => {
-      const campos = [
-        anuncio.tipoModelo,
-        anuncio.modeloCarroceria,
-        anuncio.modeloChassis,
-        anuncio.fabricanteCarroceria,
-        anuncio.fabricanteChassis
-      ].join(" ");
-      return removerAcentos(campos).includes(removerAcentos(busca));
-    });
-  }
+    if (busca) {
+      filtrados = filtrados.filter(anuncio => {
+        const campos = [
+          anuncio.tipoModelo,
+          anuncio.modeloCarroceria,
+          anuncio.modeloChassis,
+          anuncio.fabricanteCarroceria,
+          anuncio.fabricanteChassis
+        ].join(" ");
+        return removerAcentos(campos).includes(removerAcentos(busca));
+      });
+    }
 
-  setAnuncios(filtrados);
-  setPaginaAtual(1);
-}, [filtroModelo, busca, todosAnuncios]);
+    setAnuncios(filtrados);
+    setPaginaAtual(1);
+  }, [filtroModelo, busca, todosAnuncios]);
 
   useEffect(() => {
     const slides = document.querySelectorAll(".slide");
@@ -148,15 +148,15 @@ function Home() {
       </header>
 
       <p className="menu-titulo">Modelo de Carrocerias:</p>
-<div className="menu-opcoes">
-  <span onClick={() => setFiltroModelo("utilitarios")}>Utilitários</span>
-  <span onClick={() => setFiltroModelo("micro-onibus")}>Micro-Ônibus</span>
-  <span onClick={() => setFiltroModelo("onibus-4x2")}>Ônibus 4x2</span>
-  <span onClick={() => setFiltroModelo("onibus-6x2")}>Ônibus 6x2</span>
-  <span onClick={() => setFiltroModelo("onibus-urbano")}>Ônibus Urbano</span>
-  <span onClick={() => setFiltroModelo("lowdriver")}>Low Driver</span>
-  <span onClick={() => setFiltroModelo("doubledecker")}>Double Decker</span>
-</div>
+      <div className="menu-opcoes">
+        <span onClick={() => setFiltroModelo("utilitarios")}>Utilitários</span>
+        <span onClick={() => setFiltroModelo("micro-onibus")}>Micro-Ônibus</span>
+        <span onClick={() => setFiltroModelo("onibus-4x2")}>Ônibus 4x2</span>
+        <span onClick={() => setFiltroModelo("onibus-6x2")}>Ônibus 6x2</span>
+        <span onClick={() => setFiltroModelo("onibus-urbano")}>Ônibus Urbano</span>
+        <span onClick={() => setFiltroModelo("lowdriver")}>Low Driver</span>
+        <span onClick={() => setFiltroModelo("doubledecker")}>Double Decker</span>
+      </div>
 
       {filtroModelo && (
         <span className="botao-voltar-modelos" onClick={() => setFiltroModelo(null)}>
@@ -184,7 +184,14 @@ function Home() {
         <div className="grid-anuncios">
           {anunciosExibidos.map((anuncio) => (
             <div className="card-anuncio" key={anuncio._id}>
-              <img src={anuncio.imagens?.[0] || ""} className="imagem-capa" alt={anuncio.modeloCarroceria} />
+              {/* ✅ usa a capa oficial vinda do backend */}
+              <img
+                src={anuncio.capaUrl}
+                className="imagem-capa"
+                alt={anuncio.modeloCarroceria}
+                loading="lazy"
+                decoding="async"
+              />
               <div className="info-anuncio">
                 <h3>{anuncio.fabricanteCarroceria} {anuncio.modeloCarroceria}</h3>
                 <p className="valor">
