@@ -1,5 +1,5 @@
 // src/PainelAdmin.jsx
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import logo from "./assets/logo-webbuses.png";
 import fundo from "./assets/bg-whatsapp.png";
 import { API_URL } from "./config";
@@ -12,9 +12,7 @@ function PainelAdmin() {
   const [page, setPage] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [total, setTotal] = useState(0);
-
-  // anúncios expandidos (carrega thumbs só quando abre)
-  const [expandidos, setExpandidos] = useState(() => new Set());
+  const [expandidos, setExpandidos] = useState(() => new Set()); // ids abertos
 
   const carregarPagina = async (p = 1) => {
     try {
@@ -23,7 +21,6 @@ function PainelAdmin() {
       if (!r.ok) throw new Error("Falha ao buscar admin");
       const { data, paginaAtual, totalPaginas, total } = await r.json();
 
-      // agrupar por anunciante (igual você já fazia)
       const agrupados = {};
       (data || []).forEach((anuncio) => {
         const telefoneBruto =
@@ -48,7 +45,6 @@ function PainelAdmin() {
         const capaThumb = `${API_URL}/anuncios/${anuncio._id}/capa?w=120&q=65&format=webp`;
         const count = Number(anuncio.imagensCount || 0);
 
-        // NÃO monta lista de fotos aqui (só quando expandir)
         agrupados[chave].anuncios.push({
           ...anuncio,
           capaThumb,
@@ -81,12 +77,8 @@ function PainelAdmin() {
     });
   };
 
-  const handlePrev = () => {
-    if (page > 1) carregarPagina(page - 1);
-  };
-  const handleNext = () => {
-    if (page < totalPaginas) carregarPagina(page + 1);
-  };
+  const handlePrev = () => page > 1 && carregarPagina(page - 1);
+  const handleNext = () => page < totalPaginas && carregarPagina(page + 1);
 
   const atualizarStatusAnuncio = async (anuncioId, novoStatus) => {
     try {
@@ -127,9 +119,7 @@ function PainelAdmin() {
       if (anunciante) {
         for (const anuncio of anunciante.anuncios) {
           const id = anuncio._id || anuncio.id;
-          if (id) {
-            await fetch(`${API_URL}/anuncios/${id}`, { method: "DELETE" });
-          }
+          if (id) await fetch(`${API_URL}/anuncios/${id}`, { method: "DELETE" });
         }
       }
       alert("✅ Anunciante e todos os seus anúncios foram excluídos.");
@@ -178,25 +168,25 @@ function PainelAdmin() {
           <h3 style={styles.subtitulo}>Anúncios enviados:</h3>
           {anunciante.anuncios.map((anuncio) => {
             const aberto = expandidos.has(anuncio._id);
-            const thumbs = useMemo(() => {
-              if (!aberto) return []; // só gera quando aberto
-              const n = Math.min(Number(anuncio.imagensCount || 0), 6); // limita a 6 thumbs
-              if (n <= 0) return [anuncio.capaThumb];
-              return Array.from({ length: n }, (_, i) =>
-                `${API_URL}/anuncios/${anuncio._id}/foto/${i}?w=100&q=65&format=webp`
-              );
-            }, [aberto, anuncio._id, anuncio.imagensCount, anuncio.capaThumb]);
+
+            // 🔹 Sem hooks aqui: calcula thumbs inline quando expandido (limite 6)
+            let thumbs = [];
+            const n = Math.min(Number(anuncio.imagensCount || 0), 6);
+            if (aberto) {
+              thumbs = n > 0
+                ? Array.from({ length: n }, (_, i) =>
+                    `${API_URL}/anuncios/${anuncio._id}/foto/${i}?w=100&q=65&format=webp`
+                  )
+                : [anuncio.capaThumb];
+            }
 
             return (
               <div key={anuncio._id} style={styles.cardAnuncio}>
                 <div style={styles.galeria}>
-                  {/* capa sempre visível e leve */}
                   <img src={anuncio.capaThumb} alt="Capa" style={styles.imagemMiniatura} />
-                  {/* thumbs só quando expandido */}
-                  {aberto &&
-                    thumbs.map((img, index) => (
-                      <img key={index} src={img} alt={`Foto ${index + 1}`} style={styles.imagemMiniatura} loading="lazy" />
-                    ))}
+                  {aberto && thumbs.map((img, index) => (
+                    <img key={index} src={img} alt={`Foto ${index + 1}`} style={styles.imagemMiniatura} loading="lazy" />
+                  ))}
                 </div>
                 <div style={styles.infoAnuncio}>
                   <p><strong>Modelo:</strong> {anuncio.modeloCarroceria}</p>
@@ -246,7 +236,6 @@ function PainelAdmin() {
         </div>
       ))}
 
-      {/* Paginação no rodapé também */}
       <div style={{ marginTop: 16 }}>
         <button onClick={handlePrev} disabled={page<=1} style={styles.btnPage}>← Anterior</button>
         <span style={{ margin: "0 12px", color:"#fff" }}>
