@@ -4,21 +4,43 @@ import logo from "./assets/logo-webbuses.png";
 import fundo from "./assets/bg-whatsapp.png";
 import { API_URL } from "./config";
 
+const PAGE_LIMIT = 100; // backend limita em 100
+
 function PainelAdmin() {
   const [anunciantes, setAnunciantes] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  // Busca TODAS as páginas do endpoint admin e agrega
   const carregarAnuncios = async () => {
     try {
-      const resposta = await fetch(`${API_URL}/anuncios/admin`);
-      const dados = await resposta.json();
+      setLoading(true);
 
-      const lista = Array.isArray(dados) ? dados : [];
+      const fetchPage = async (page) => {
+        const r = await fetch(`${API_URL}/anuncios/admin?page=${page}&limit=${PAGE_LIMIT}`);
+        if (!r.ok) throw new Error("Falha ao buscar admin");
+        return r.json(); // { data, paginaAtual, totalPaginas, total }
+      };
 
+      const first = await fetchPage(1);
+      let todos = Array.isArray(first.data) ? first.data : [];
+
+      if (first.totalPaginas > 1) {
+        const promises = [];
+        for (let p = 2; p <= first.totalPaginas; p++) promises.push(fetchPage(p));
+        const rest = await Promise.all(promises);
+        for (const resp of rest) {
+          if (Array.isArray(resp.data)) todos = todos.concat(resp.data);
+        }
+      }
+
+      // Agrupar por anunciante (telefone/email/nome) e preparar thumbs
       const agrupados = {};
-      lista.forEach((anuncio) => {
+      todos.forEach((anuncio) => {
         const telefoneBruto =
-          anuncio.telefoneBruto || (anuncio.telefone ? anuncio.telefone.replace(/\D/g, "") : "");
-        const chave = telefoneBruto || anuncio.email || anuncio.nomeAnunciante || anuncio.anunciante;
+          anuncio.telefoneBruto ||
+          (anuncio.telefone ? anuncio.telefone.replace(/\D/g, "") : "");
+        const chave =
+          telefoneBruto || anuncio.email || anuncio.nomeAnunciante || anuncio.anunciante || "desconhecido";
 
         if (!agrupados[chave]) {
           agrupados[chave] = {
@@ -29,16 +51,34 @@ function PainelAdmin() {
             cidade: anuncio.localizacao?.cidade || "-",
             estado: anuncio.localizacao?.estado || "-",
             dataCadastro: anuncio.dataCadastro || new Date().toLocaleDateString("pt-BR"),
-            anuncios: []
+            anuncios: [],
           };
         }
 
-        agrupados[chave].anuncios.push(anuncio);
+        // URLs otimizadas (não dependem do array de imagens)
+        const capaThumb = `${API_URL}/anuncios/${anuncio._id}/capa?w=120&q=65&format=webp`;
+        const count = Number(anuncio.imagensCount || 0);
+
+        const fotos =
+          count > 0
+            ? Array.from({ length: count }, (_, i) =>
+                `${API_URL}/anuncios/${anuncio._id}/foto/${i}?w=100&q=65&format=webp`
+              )
+            : [capaThumb]; // se não tiver, mostra só a capa
+
+        agrupados[chave].anuncios.push({
+          ...anuncio,
+          capaThumb,
+          fotos,
+        });
       });
 
       setAnunciantes(Object.values(agrupados));
     } catch (erro) {
       console.error("Erro ao buscar anúncios (admin):", erro);
+      setAnunciantes([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -48,10 +88,11 @@ function PainelAdmin() {
 
   const atualizarStatusAnuncio = async (anuncioId, novoStatus) => {
     try {
-      await fetch(`${API_URL}/anuncios/${anuncioId}`, {
+      // usa rota de status do backend
+      await fetch(`${API_URL}/anuncios/${anuncioId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: novoStatus })
+        body: JSON.stringify({ status: novoStatus }),
       });
       await carregarAnuncios();
     } catch (erro) {
@@ -111,7 +152,9 @@ function PainelAdmin() {
       </div>
       <h1 style={styles.titulo}>Painel do Administrador</h1>
 
-      {anunciantes.map((anunciante) => (
+      {loading && <p style={{ color: "#fff" }}>⏳ Carregando anúncios…</p>}
+
+      {!loading && anunciantes.map((anunciante) => (
         <div key={anunciante.id} style={styles.cardAnunciante}>
           <h2 style={styles.nomeAnunciante}>{anunciante.nome}</h2>
           <p><strong>Email:</strong> {anunciante.email}</p>
@@ -123,8 +166,11 @@ function PainelAdmin() {
           {anunciante.anuncios.map((anuncio) => (
             <div key={anuncio._id} style={styles.cardAnuncio}>
               <div style={styles.galeria}>
-                {(anuncio.imagens || []).map((img, index) => (
-                  <img key={index} src={img} alt={`Foto ${index + 1}`} style={styles.imagemMiniatura} />
+                {/* capa rápida */}
+                <img src={anuncio.capaThumb} alt="Capa" style={styles.imagemMiniatura} />
+                {/* thumbs geradas via endpoint otimizado */}
+                {anuncio.fotos.map((img, index) => (
+                  <img key={index} src={img} alt={`Foto ${index + 1}`} style={styles.imagemMiniatura} loading="lazy" />
                 ))}
               </div>
               <div style={styles.infoAnuncio}>
