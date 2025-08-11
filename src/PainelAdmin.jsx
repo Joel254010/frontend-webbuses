@@ -1,41 +1,31 @@
 // src/PainelAdmin.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import logo from "./assets/logo-webbuses.png";
 import fundo from "./assets/bg-whatsapp.png";
 import { API_URL } from "./config";
 
-const PAGE_LIMIT = 100; // backend limita em 100
+const PAGE_LIMIT = 50;
 
 function PainelAdmin() {
   const [anunciantes, setAnunciantes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  // Busca TODAS as páginas do endpoint admin e agrega
-  const carregarAnuncios = async () => {
+  // anúncios expandidos (carrega thumbs só quando abre)
+  const [expandidos, setExpandidos] = useState(() => new Set());
+
+  const carregarPagina = async (p = 1) => {
     try {
       setLoading(true);
+      const r = await fetch(`${API_URL}/anuncios/admin?page=${p}&limit=${PAGE_LIMIT}`);
+      if (!r.ok) throw new Error("Falha ao buscar admin");
+      const { data, paginaAtual, totalPaginas, total } = await r.json();
 
-      const fetchPage = async (page) => {
-        const r = await fetch(`${API_URL}/anuncios/admin?page=${page}&limit=${PAGE_LIMIT}`);
-        if (!r.ok) throw new Error("Falha ao buscar admin");
-        return r.json(); // { data, paginaAtual, totalPaginas, total }
-      };
-
-      const first = await fetchPage(1);
-      let todos = Array.isArray(first.data) ? first.data : [];
-
-      if (first.totalPaginas > 1) {
-        const promises = [];
-        for (let p = 2; p <= first.totalPaginas; p++) promises.push(fetchPage(p));
-        const rest = await Promise.all(promises);
-        for (const resp of rest) {
-          if (Array.isArray(resp.data)) todos = todos.concat(resp.data);
-        }
-      }
-
-      // Agrupar por anunciante (telefone/email/nome) e preparar thumbs
+      // agrupar por anunciante (igual você já fazia)
       const agrupados = {};
-      todos.forEach((anuncio) => {
+      (data || []).forEach((anuncio) => {
         const telefoneBruto =
           anuncio.telefoneBruto ||
           (anuncio.telefone ? anuncio.telefone.replace(/\D/g, "") : "");
@@ -55,27 +45,23 @@ function PainelAdmin() {
           };
         }
 
-        // URLs otimizadas (não dependem do array de imagens)
         const capaThumb = `${API_URL}/anuncios/${anuncio._id}/capa?w=120&q=65&format=webp`;
         const count = Number(anuncio.imagensCount || 0);
 
-        const fotos =
-          count > 0
-            ? Array.from({ length: count }, (_, i) =>
-                `${API_URL}/anuncios/${anuncio._id}/foto/${i}?w=100&q=65&format=webp`
-              )
-            : [capaThumb]; // se não tiver, mostra só a capa
-
+        // NÃO monta lista de fotos aqui (só quando expandir)
         agrupados[chave].anuncios.push({
           ...anuncio,
           capaThumb,
-          fotos,
+          imagensCount: count,
         });
       });
 
       setAnunciantes(Object.values(agrupados));
-    } catch (erro) {
-      console.error("Erro ao buscar anúncios (admin):", erro);
+      setPage(paginaAtual || p);
+      setTotalPaginas(totalPaginas || 1);
+      setTotal(total || 0);
+    } catch (e) {
+      console.error(e);
       setAnunciantes([]);
     } finally {
       setLoading(false);
@@ -83,18 +69,33 @@ function PainelAdmin() {
   };
 
   useEffect(() => {
-    carregarAnuncios();
+    carregarPagina(1);
   }, []);
+
+  const toggleExpandir = (anuncioId) => {
+    setExpandidos((old) => {
+      const next = new Set(old);
+      if (next.has(anuncioId)) next.delete(anuncioId);
+      else next.add(anuncioId);
+      return next;
+    });
+  };
+
+  const handlePrev = () => {
+    if (page > 1) carregarPagina(page - 1);
+  };
+  const handleNext = () => {
+    if (page < totalPaginas) carregarPagina(page + 1);
+  };
 
   const atualizarStatusAnuncio = async (anuncioId, novoStatus) => {
     try {
-      // usa rota de status do backend
       await fetch(`${API_URL}/anuncios/${anuncioId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: novoStatus }),
       });
-      await carregarAnuncios();
+      await carregarPagina(page);
     } catch (erro) {
       console.error("Erro ao atualizar status:", erro);
     }
@@ -106,10 +107,9 @@ function PainelAdmin() {
 
     try {
       const resposta = await fetch(`${API_URL}/anuncios/${anuncioId}`, { method: "DELETE" });
-
       if (resposta.ok) {
         alert("✅ Anúncio excluído com sucesso.");
-        await carregarAnuncios();
+        await carregarPagina(page);
       } else {
         const erro = await resposta.json();
         alert("❌ Erro ao excluir anúncio: " + (erro?.mensagem || "Erro desconhecido."));
@@ -133,7 +133,7 @@ function PainelAdmin() {
         }
       }
       alert("✅ Anunciante e todos os seus anúncios foram excluídos.");
-      await carregarAnuncios();
+      await carregarPagina(page);
     } catch (erro) {
       console.error("Erro ao excluir anunciante:", erro);
     }
@@ -150,7 +150,20 @@ function PainelAdmin() {
         <img src={logo} alt="Web Buses" style={styles.logo} />
         <button onClick={handleLogout} style={styles.logout}>Sair</button>
       </div>
-      <h1 style={styles.titulo}>Painel do Administrador</h1>
+
+      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+        <h1 style={styles.titulo}>Painel do Administrador</h1>
+        <div style={{color:"#fff"}}>Total: <strong>{total}</strong></div>
+      </div>
+
+      {/* Paginação */}
+      <div style={{ marginBottom: 16 }}>
+        <button onClick={handlePrev} disabled={page<=1} style={styles.btnPage}>← Anterior</button>
+        <span style={{ margin: "0 12px", color:"#fff" }}>
+          Página <strong>{page}</strong> de <strong>{totalPaginas}</strong>
+        </span>
+        <button onClick={handleNext} disabled={page>=totalPaginas} style={styles.btnPage}>Próxima →</button>
+      </div>
 
       {loading && <p style={{ color: "#fff" }}>⏳ Carregando anúncios…</p>}
 
@@ -163,56 +176,84 @@ function PainelAdmin() {
           <p><strong>Data de Cadastro:</strong> {anunciante.dataCadastro}</p>
 
           <h3 style={styles.subtitulo}>Anúncios enviados:</h3>
-          {anunciante.anuncios.map((anuncio) => (
-            <div key={anuncio._id} style={styles.cardAnuncio}>
-              <div style={styles.galeria}>
-                {/* capa rápida */}
-                <img src={anuncio.capaThumb} alt="Capa" style={styles.imagemMiniatura} />
-                {/* thumbs geradas via endpoint otimizado */}
-                {anuncio.fotos.map((img, index) => (
-                  <img key={index} src={img} alt={`Foto ${index + 1}`} style={styles.imagemMiniatura} loading="lazy" />
-                ))}
-              </div>
-              <div style={styles.infoAnuncio}>
-                <p><strong>Modelo:</strong> {anuncio.modeloCarroceria}</p>
-                <p><strong>Valor:</strong> {anuncio.valor}</p>
-                <p><strong>Status:</strong> {anuncio.status}</p>
+          {anunciante.anuncios.map((anuncio) => {
+            const aberto = expandidos.has(anuncio._id);
+            const thumbs = useMemo(() => {
+              if (!aberto) return []; // só gera quando aberto
+              const n = Math.min(Number(anuncio.imagensCount || 0), 6); // limita a 6 thumbs
+              if (n <= 0) return [anuncio.capaThumb];
+              return Array.from({ length: n }, (_, i) =>
+                `${API_URL}/anuncios/${anuncio._id}/foto/${i}?w=100&q=65&format=webp`
+              );
+            }, [aberto, anuncio._id, anuncio.imagensCount, anuncio.capaThumb]);
 
-                {anuncio.status === "pendente" || anuncio.status === "aguardando pagamento" ? (
+            return (
+              <div key={anuncio._id} style={styles.cardAnuncio}>
+                <div style={styles.galeria}>
+                  {/* capa sempre visível e leve */}
+                  <img src={anuncio.capaThumb} alt="Capa" style={styles.imagemMiniatura} />
+                  {/* thumbs só quando expandido */}
+                  {aberto &&
+                    thumbs.map((img, index) => (
+                      <img key={index} src={img} alt={`Foto ${index + 1}`} style={styles.imagemMiniatura} loading="lazy" />
+                    ))}
+                </div>
+                <div style={styles.infoAnuncio}>
+                  <p><strong>Modelo:</strong> {anuncio.modeloCarroceria}</p>
+                  <p><strong>Valor:</strong> {anuncio.valor}</p>
+                  <p><strong>Status:</strong> {anuncio.status}</p>
+
                   <div style={styles.botoes}>
-                    <button onClick={() => atualizarStatusAnuncio(anuncio._id, "aprovado")} style={styles.botaoAprovar}>Aprovar</button>
-                    <button onClick={() => atualizarStatusAnuncio(anuncio._id, "rejeitado")} style={styles.botaoRejeitar}>Rejeitar</button>
-                    <button onClick={() => excluirAnuncio(anuncio._id)} style={styles.botaoExcluir}>Excluir</button>
+                    <button onClick={() => toggleExpandir(anuncio._id)} style={styles.botaoToggle}>
+                      {aberto ? "Ocultar fotos" : `Ver fotos (${anuncio.imagensCount || 0})`}
+                    </button>
+
+                    {anuncio.status === "pendente" || anuncio.status === "aguardando pagamento" ? (
+                      <>
+                        <button onClick={() => atualizarStatusAnuncio(anuncio._id, "aprovado")} style={styles.botaoAprovar}>Aprovar</button>
+                        <button onClick={() => atualizarStatusAnuncio(anuncio._id, "rejeitado")} style={styles.botaoRejeitar}>Rejeitar</button>
+                        <button onClick={() => excluirAnuncio(anuncio._id)} style={styles.botaoExcluir}>Excluir</button>
+                      </>
+                    ) : anuncio.status === "aguardando venda" ? (
+                      <>
+                        <p style={{ fontWeight: "bold", color: "#ffc107", margin: 0 }}>🚧 Aguardando Confirmação de Venda</p>
+                        <button onClick={() => atualizarStatusAnuncio(anuncio._id, "vendido")} style={styles.botaoRejeitar}>Confirmar Venda</button>
+                        <button onClick={() => excluirAnuncio(anuncio._id)} style={styles.botaoExcluir}>Excluir</button>
+                      </>
+                    ) : (
+                      <>
+                        <p style={
+                          anuncio.status === "aprovado" ? styles.statusVerde :
+                          anuncio.status === "vendido" ? { color: "#00e0ff", fontWeight: "bold", margin: 0 } :
+                          styles.statusVermelho
+                        }>
+                          {anuncio.status === "aprovado" ? "✅ Aprovado" :
+                           anuncio.status === "vendido" ? "✔️ Vendido" :
+                           "❌ Rejeitado"}
+                        </p>
+                        <button onClick={() => excluirAnuncio(anuncio._id)} style={styles.botaoExcluir}>Excluir</button>
+                      </>
+                    )}
                   </div>
-                ) : anuncio.status === "aguardando venda" ? (
-                  <div style={styles.botoes}>
-                    <p style={{ fontWeight: "bold", color: "#ffc107" }}>🚧 Aguardando Confirmação de Venda</p>
-                    <button onClick={() => atualizarStatusAnuncio(anuncio._id, "vendido")} style={styles.botaoRejeitar}>Confirmar Venda</button>
-                    <button onClick={() => excluirAnuncio(anuncio._id)} style={styles.botaoExcluir}>Excluir</button>
-                  </div>
-                ) : (
-                  <>
-                    <p style={
-                      anuncio.status === "aprovado" ? styles.statusVerde :
-                      anuncio.status === "vendido" ? { color: "#00e0ff", fontWeight: "bold" } :
-                      styles.statusVermelho
-                    }>
-                      {anuncio.status === "aprovado" ? "✅ Aprovado" :
-                       anuncio.status === "vendido" ? "✔️ Vendido" :
-                       "❌ Rejeitado"}
-                    </p>
-                    <button onClick={() => excluirAnuncio(anuncio._id)} style={styles.botaoExcluir}>Excluir</button>
-                  </>
-                )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           <button onClick={() => excluirAnunciante(anunciante.id)} style={{ ...styles.botaoExcluir, marginTop: 20 }}>
             ❌ Excluir Anunciante
           </button>
         </div>
       ))}
+
+      {/* Paginação no rodapé também */}
+      <div style={{ marginTop: 16 }}>
+        <button onClick={handlePrev} disabled={page<=1} style={styles.btnPage}>← Anterior</button>
+        <span style={{ margin: "0 12px", color:"#fff" }}>
+          Página <strong>{page}</strong> de <strong>{totalPaginas}</strong>
+        </span>
+        <button onClick={handleNext} disabled={page>=totalPaginas} style={styles.btnPage}>Próxima →</button>
+      </div>
     </div>
   );
 }
@@ -230,10 +271,12 @@ const styles = {
   galeria: { display: "flex", gap: 8, flexWrap: "wrap" },
   imagemMiniatura: { width: 100, height: 80, objectFit: "cover", borderRadius: 6 },
   infoAnuncio: { flex: 1, marginLeft: 16 },
-  botoes: { display: "flex", gap: 8, marginTop: 12 },
+  botoes: { display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" },
   botaoAprovar: { backgroundColor: "#28a745", color: "#fff", border: "none", padding: "8px 12px", borderRadius: 6, cursor: "pointer" },
   botaoRejeitar: { backgroundColor: "#ffc107", color: "#000", border: "none", padding: "8px 12px", borderRadius: 6, cursor: "pointer" },
   botaoExcluir: { backgroundColor: "#dc3545", color: "#fff", border: "none", padding: "8px 12px", borderRadius: 6, cursor: "pointer" },
+  botaoToggle: { backgroundColor: "#444", color: "#fff", border: "none", padding: "8px 12px", borderRadius: 6, cursor: "pointer" },
+  btnPage: { backgroundColor: "#444", color: "#fff", border: "none", padding: "8px 12px", borderRadius: 6, cursor: "pointer" },
   statusVerde: { color: "#88fe03", fontWeight: "bold", marginTop: 10 },
   statusVermelho: { color: "#f00", fontWeight: "bold", marginTop: 10 }
 };
