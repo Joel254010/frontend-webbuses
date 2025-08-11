@@ -20,18 +20,32 @@ function PainelAdmin() {
         return `R$ ${v}`;
       }
     }
-    // se já vier string formatada, mantém
     return v || "-";
+  };
+
+  // 🔧 monta URL de capa com múltiplos fallbacks
+  const buildCapa = (anuncio) => {
+    // 1) backend já manda capa pronta (preferencial pois é leve)
+    if (anuncio?.capaUrl) return anuncio.capaUrl;
+
+    // 2) registros antigos: se vier URL http/https direta em fotoCapaUrl
+    if (anuncio?.fotoCapaUrl && /^https?:\/\//i.test(anuncio.fotoCapaUrl)) {
+      return anuncio.fotoCapaUrl;
+    }
+
+    // 3) endpoint de capa no backend com resize leve
+    return `${API_URL}/anuncios/${anuncio._id}/capa?w=320&q=70&format=webp`;
   };
 
   const carregarAnuncios = async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${API_URL}/anuncios/admin`);
+      // ⚡ paginação para reduzir payload inicial e abrir rápido
+      const params = new URLSearchParams({ page: "1", limit: "24" });
+      const r = await fetch(`${API_URL}/anuncios/admin?${params.toString()}`);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const dados = await r.json();
 
-      // ✅ compat: novo formato { data, paginaAtual, ... } | antigo: []
       const lista = Array.isArray(dados?.data)
         ? dados.data
         : Array.isArray(dados)
@@ -185,10 +199,8 @@ function PainelAdmin() {
           <h3 style={styles.subtitulo}>Anúncios enviados:</h3>
 
           {anunciante.anuncios.map((anuncio) => {
-            // ✅ usa 'capaUrl' do backend; fallback para endpoint /capa com parâmetros leves
-            const capa =
-              anuncio.capaUrl ||
-              `${API_URL}/anuncios/${anuncio._id}/capa?w=320&q=70&format=webp`;
+            // ✅ capa com múltiplos fallbacks
+            const capaInicial = buildCapa(anuncio);
 
             // ✅ contador enxuto vindo do backend; se vier imagens completas, usa length
             const fotosTotal =
@@ -198,15 +210,25 @@ function PainelAdmin() {
                 ? anuncio.imagens.length
                 : 0;
 
+            // handler de erro pra reforçar fallback caso a primeira URL falhe
+            const handleImgError = (e) => {
+              const safe = `${API_URL}/anuncios/${anuncio._id}/capa?w=320&q=70&format=webp`;
+              if (e?.target?.src !== safe) {
+                e.target.src = safe;
+              }
+            };
+
             return (
               <div key={anuncio._id} style={styles.cardAnuncio}>
                 <div style={styles.galeria}>
                   <img
-                    src={capa}
+                    src={capaInicial}
                     alt="Capa"
                     style={styles.imagemMiniatura}
                     loading="lazy"
+                    decoding="async"
                     referrerPolicy="no-referrer"
+                    onError={handleImgError}
                   />
                 </div>
 
