@@ -1,4 +1,4 @@
-// ✅ Home.jsx – robusto para Cloudinary (string JSON, //url, etc.)
+// ✅ Home.jsx – usa mesma lógica do Admin (fotoCapaThumb → fotoCapaUrl → capaUrl)
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Home.css";
@@ -6,16 +6,12 @@ import logoWebBuses from "./assets/logo-webbuses.png";
 import banner1 from "./assets/banner1.png";
 import banner2 from "./assets/banner2.png";
 import banner3 from "./assets/banner3.png";
-import { API_URL } from "./config";
+import { API_URL, API_BASE } from "./config";
 
 /* Utils */
 function removerAcentos(str) {
-  return String(str || "")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase();
+  return String(str || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
-
 function slugModeloFromTipo(tipo = "") {
   const raw = removerAcentos(String(tipo).toLowerCase());
   if (raw.includes("utilit")) return "utilitarios";
@@ -28,56 +24,47 @@ function slugModeloFromTipo(tipo = "") {
   return raw.replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 }
 
-// 🔎 getCapa super-robusto
-function getCapa(anuncio) {
-  // 1) capaUrl pode ser string
-  if (typeof anuncio?.capaUrl === "string") {
-    const s = anuncio.capaUrl.trim();
+/** Normaliza qualquer string de URL (http, //, relativa, JSON stringificado) */
+function normalizeUrlMaybe(value) {
+  if (typeof value !== "string") return "";
+  let s = value.trim();
+  if (!s) return "";
 
-    // 1.a) se for JSON stringificado: {"secure_url":"..."}
-    if (s.startsWith("{") && s.endsWith("}")) {
-      try {
-        const obj = JSON.parse(s);
-        if (obj?.secure_url) return obj.secure_url;
-        if (obj?.url) return obj.url;
-      } catch (_) {
-        // ignora parse error
-      }
-    }
-
-    // 1.b) se já for http(s)
-    if (/^https?:\/\//i.test(s)) return s;
-
-    // 1.c) se vier como //res.cloudinary.com/...
-    if (s.startsWith("//")) return `https:${s}`;
-
-    // 1.d) outros formatos (caminho relativo / public_id puro)
-    // -> sem cloud_name não dá pra montar URL com segurança; retorna vazio
+  // string JSON? {"secure_url":"..."} / {"url":"..."}
+  if (s.startsWith("{") && s.endsWith("}")) {
+    try {
+      const o = JSON.parse(s);
+      if (o?.secure_url) return o.secure_url;
+      if (o?.url) return o.url;
+    } catch {}
     return "";
   }
 
-  // 2) capaUrl pode ser objeto com secure_url/url
-  if (anuncio?.capaUrl?.secure_url) return anuncio.capaUrl.secure_url;
-  if (anuncio?.capaUrl?.url) return anuncio.capaUrl.url;
+  if (/^https?:\/\//i.test(s)) return s;
+  if (s.startsWith("//")) return `https:${s}`;
+  if (s.startsWith("/")) return `${API_BASE}${s}`;
+  // caminho relativo (ex.: uploads/abc.jpg)
+  if (!s.includes("://")) return `${API_BASE}/${s}`;
+  return "";
+}
 
-  // 3) outros campos comuns
-  if (anuncio?.capa?.secure_url) return anuncio.capa.secure_url;
-  if (anuncio?.capa?.url) return anuncio.capa.url;
-  if (anuncio?.coverUrl?.secure_url) return anuncio.coverUrl.secure_url;
-  if (typeof anuncio?.coverUrl === "string") return anuncio.coverUrl;
-  if (anuncio?.capaImagem?.secure_url) return anuncio.capaImagem.secure_url;
+/** Mesmo critério do Admin: fotoCapaThumb → fotoCapaUrl → capaUrl → arrays */
+function getCapa(anuncio) {
+  const byPriority =
+    normalizeUrlMaybe(anuncio?.fotoCapaThumb) ||
+    normalizeUrlMaybe(anuncio?.fotoCapaUrl) ||
+    normalizeUrlMaybe(anuncio?.capaUrl);
 
-  // 4) arrays (imagens/fotos/images)
+  if (byPriority) return byPriority;
+
+  // arrays: imagens / fotos / images
   const arr = anuncio?.imagens || anuncio?.fotos || anuncio?.images;
   const img0 = Array.isArray(arr) ? arr[0] : null;
-  if (typeof img0 === "string") {
-    if (/^https?:\/\//i.test(img0)) return img0;
-    if (img0.startsWith("//")) return `https:${img0}`;
-    return "";
-  }
+
+  if (typeof img0 === "string") return normalizeUrlMaybe(img0);
   if (img0?.secure_url) return img0.secure_url;
-  if (img0?.url) return img0.url;
-  if (img0?.path) return img0.path;
+  if (img0?.url) return normalizeUrlMaybe(img0.url);
+  if (img0?.path) return normalizeUrlMaybe(img0.path);
 
   return "";
 }
@@ -103,6 +90,7 @@ function Home() {
   const [erro, setErro] = useState("");
 
   const anunciosPorPagina = 12;
+
   const [curtidas, setCurtidas] = useState({});
   const [curtido, setCurtido] = useState({});
   const [menuCompartilharAtivo, setMenuCompartilharAtivo] = useState(null);
@@ -115,33 +103,21 @@ function Home() {
         const resposta = await fetch(`${API_URL}/anuncios`);
         const dados = await resposta.json();
 
-        const bruto = Array.isArray(dados)
-          ? dados
-          : Array.isArray(dados?.anuncios)
-          ? dados.anuncios
-          : [];
+        const bruto = Array.isArray(dados) ? dados : Array.isArray(dados?.anuncios) ? dados.anuncios : [];
 
         const normalizados = bruto
-          .map((a) => {
-            const capaUrl = getCapa(a);
-            return {
-              ...a,
-              capaUrl,
-              slugModelo: a.slugModelo ?? slugModeloFromTipo(a.tipoModelo || ""),
-              _valorNumber: parseValorBRL(a.valor),
-            };
-          })
+          .map((a) => ({
+            ...a,
+            capaUrl: getCapa(a),
+            slugModelo: a.slugModelo ?? slugModeloFromTipo(a.tipoModelo || ""),
+            _valorNumber: parseValorBRL(a.valor),
+          }))
           .filter((a) => a?.status === "aprovado");
 
         setTodosAnuncios(normalizados);
         setAnuncios(normalizados);
 
-        // 🔍 debug opcional: veja qual capa está sendo usada
-        const dbg = normalizados.slice(0, 8).map((x) => ({
-          id: x._id,
-          capaUsada: x.capaUrl || "(vazio)",
-        }));
-        console.table(dbg);
+        console.table(normalizados.slice(0, 8).map((x) => ({ id: x._id, capaUsada: x.capaUrl || "(vazio)" })));
       } catch (e) {
         console.error("Erro ao buscar anúncios:", e);
         setErro("Não foi possível carregar os anúncios.");
@@ -168,7 +144,9 @@ function Home() {
           anuncio.fabricanteChassis,
           anuncio?.localizacao?.cidade,
           anuncio?.localizacao?.estado,
-        ].filter(Boolean).join(" ");
+        ]
+          .filter(Boolean)
+          .join(" ");
         return removerAcentos(campos).includes(alvo);
       });
     }
@@ -224,15 +202,12 @@ function Home() {
   };
 
   const compartilharFacebook = (id) => {
-    const url = encodeURIComponent(`https://backend-webbuses.onrender.com/preview/${id}`);
+    const url = encodeURIComponent(`https://www.webbuses.com/onibus/${id}`);
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, "_blank");
   };
 
   const totalPaginas = Math.ceil(anuncios.length / anunciosPorPagina) || 1;
-  const anunciosExibidos = anuncios.slice(
-    (paginaAtual - 1) * anunciosPorPagina,
-    paginaAtual * anunciosPorPagina
-  );
+  const anunciosExibidos = anuncios.slice((paginaAtual - 1) * anunciosPorPagina, paginaAtual * anunciosPorPagina);
 
   const irParaLoginAnunciante = () => navigate("/login-anunciante");
 
@@ -294,55 +269,67 @@ function Home() {
         {erro && !carregando && <p style={{ color: "#ff6868" }}>{erro}</p>}
 
         <div className="grid-anuncios">
-          {!carregando && !erro && anunciosExibidos.map((anuncio) => {
-            const capa = anuncio.capaUrl || "";
-            return (
-              <div className="card-anuncio" key={anuncio._id}>
-                {capa && (
-                  <img
-                    src={capa}
-                    className="imagem-capa"
-                    alt={anuncio.modeloCarroceria || "Ônibus"}
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => { e.currentTarget.style.display = "none"; }}
-                  />
-                )}
-                <div className="info-anuncio">
-                  <h3>{anuncio.fabricanteCarroceria || ""} {anuncio.modeloCarroceria || ""}</h3>
-                  <p className="valor">
-                    {parseValorBRL(anuncio.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </p>
-                  <span>{anuncio.kilometragem} km</span><br />
-                  <span>{anuncio.localizacao?.cidade} - {anuncio.localizacao?.estado}</span>
-                  <div className="acoes-anuncio">
-                    <Link to={`/onibus/${anuncio._id}`}>
-                      <button className="botao-saiba-mais">Saiba Mais</button>
-                    </Link>
-                    <button
-                      className={`botao-curtir ${curtido[anuncio._id] ? "curtido" : ""}`}
-                      onClick={() => handleCurtir(anuncio._id)}
-                      disabled={!!curtido[anuncio._id]}
-                    >
-                      ❤️ {curtidas[anuncio._id] || 0}
-                    </button>
-                    <div className="botao-compartilhar-container">
-                      <button className="botao-compartilhar" onClick={() => toggleMenuCompartilhar(anuncio._id)}>
-                        🔗 Compartilhar
+          {!carregando &&
+            !erro &&
+            anunciosExibidos.map((anuncio) => {
+              const capa = anuncio.capaUrl || "";
+              return (
+                <div className="card-anuncio" key={anuncio._id}>
+                  {capa && (
+                    <img
+                      src={capa}
+                      className="imagem-capa"
+                      alt={anuncio.modeloCarroceria || "Ônibus"}
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  )}
+                  <div className="info-anuncio">
+                    <h3>
+                      {anuncio.fabricanteCarroceria || ""} {anuncio.modeloCarroceria || ""}
+                    </h3>
+                    <p className="valor">
+                      {parseValorBRL(anuncio.valor).toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      })}
+                    </p>
+                    <span>{anuncio.kilometragem} km</span>
+                    <br />
+                    <span>
+                      {anuncio.localizacao?.cidade} - {anuncio.localizacao?.estado}
+                    </span>
+                    <div className="acoes-anuncio">
+                      <Link to={`/onibus/${anuncio._id}`}>
+                        <button className="botao-saiba-mais">Saiba Mais</button>
+                      </Link>
+                      <button
+                        className={`botao-curtir ${curtido[anuncio._id] ? "curtido" : ""}`}
+                        onClick={() => handleCurtir(anuncio._id)}
+                        disabled={!!curtido[anuncio._id]}
+                      >
+                        ❤️ {curtidas[anuncio._id] || 0}
                       </button>
-                      {menuCompartilharAtivo === anuncio._id && (
-                        <div className="menu-compartilhar">
-                          <button onClick={() => copiarLink(anuncio._id)}>🔗 Copiar Link</button>
-                          <button onClick={() => compartilharWhatsApp(anuncio)}>📲 WhatsApp</button>
-                          <button onClick={() => compartilharFacebook(anuncio._id)}>📢 Facebook</button>
-                        </div>
-                      )}
+                      <div className="botao-compartilhar-container">
+                        <button className="botao-compartilhar" onClick={() => toggleMenuCompartilhar(anuncio._id)}>
+                          🔗 Compartilhar
+                        </button>
+                        {menuCompartilharAtivo === anuncio._id && (
+                          <div className="menu-compartilhar">
+                            <button onClick={() => copiarLink(anuncio._id)}>🔗 Copiar Link</button>
+                            <button onClick={() => compartilharWhatsApp(anuncio)}>📲 WhatsApp</button>
+                            <button onClick={() => compartilharFacebook(anuncio._id)}>📢 Facebook</button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
 
         {totalPaginas > 1 && (
