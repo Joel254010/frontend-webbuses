@@ -28,6 +28,7 @@ function FormularioCadastroVeiculo() {
 
   const [fotoCapa, setFotoCapa] = useState(null);
   const [galeriaFotos, setGaleriaFotos] = useState([]);
+  const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
     const dados = JSON.parse(localStorage.getItem("anunciante_logado")) || {};
@@ -73,28 +74,20 @@ function FormularioCadastroVeiculo() {
   };
 
   const handleCapaChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (file) setFotoCapa(file);
   };
 
   const removerFotoCapa = () => setFotoCapa(null);
 
   const handleGaleriaChange = (e) => {
-    const files = Array.from(e.target.files).slice(0, 9);
+    const files = Array.from(e.target.files || []).slice(0, 9);
     setGaleriaFotos((prev) => [...prev, ...files].slice(0, 9));
   };
 
   const removerFotoGaleria = (index) => {
     setGaleriaFotos((prev) => prev.filter((_, i) => i !== index));
   };
-
-  const toBase64 = (file) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-    });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -104,44 +97,67 @@ function FormularioCadastroVeiculo() {
       return;
     }
 
-    const capaBase64 = fotoCapa ? await toBase64(fotoCapa) : null;
-    const galeriaBase64 = await Promise.all(galeriaFotos.map(toBase64));
+    // Pelo menos 1 imagem (capa ou galeria) — o backend exige
+    if (!fotoCapa && galeriaFotos.length === 0) {
+      alert("⚠️ Envie pelo menos uma imagem (capa ou galeria).");
+      return;
+    }
 
-    const valorLimpo = formulario.valor
-      .replace(/\./g, "")
-      .replace(",", ".")
-      .replace("R$", "")
-      .trim();
+    // normaliza valor "R$ 150.000,00" -> 150000.00
+    const valorLimpo = Number(
+      formulario.valor.replace(/\./g, "").replace(",", ".").replace(/[^\d.]/g, "")
+    );
 
-    const novoAnuncio = {
-      ...formulario,
-      valor: parseFloat(valorLimpo),
-      tipoModelo: modelo,
-      fotoCapaUrl: capaBase64,
-      imagens: [capaBase64, ...galeriaBase64],
-      status: "pendente",
-      dataEnvio: new Date().toISOString(),
-    };
+    // "Cidade, Estado" (o backend já sabe quebrar isso)
+    const localizacaoStr = `${formulario.localizacao.cidade || ""}, ${formulario.localizacao.estado || ""}`.trim();
 
-    console.log("🔍 Enviando para o backend:", novoAnuncio);
+    // FormData (NÃO definir Content-Type manualmente)
+    const fd = new FormData();
+
+    // texto
+    fd.append("nomeAnunciante", formulario.nomeAnunciante || "");
+    fd.append("anunciante", formulario.anunciante || "");
+    fd.append("email", formulario.email || "");
+    fd.append("telefone", formulario.telefone || "");
+    fd.append("telefoneBruto", formulario.telefoneBruto || "");
+    fd.append("fabricanteCarroceria", formulario.fabricanteCarroceria || "");
+    fd.append("modeloCarroceria", formulario.modeloCarroceria || "");
+    fd.append("fabricanteChassis", formulario.fabricanteChassis || "");
+    fd.append("modeloChassis", formulario.modeloChassis || "");
+    fd.append("kilometragem", formulario.kilometragem || "");
+    fd.append("lugares", formulario.lugares || "");
+    fd.append("cor", formulario.cor || "");
+    fd.append("anoModelo", formulario.anoModelo || "");
+    fd.append("localizacao", localizacaoStr);
+    fd.append("valor", String(isNaN(valorLimpo) ? "" : valorLimpo));
+    fd.append("descricao", formulario.descricao || "");
+    fd.append("tipoModelo", modelo || "");
+    fd.append("status", "pendente");
+    fd.append("dataEnvio", new Date().toISOString());
+
+    // arquivos (nomes esperados pelo backend: "capa" e "imagens")
+    if (fotoCapa) fd.append("capa", fotoCapa);
+    galeriaFotos.forEach((f) => fd.append("imagens", f)); // múltiplos
 
     try {
-      const resposta = await fetch(`${API_URL}/anuncios`, {
+      setEnviando(true);
+      const resp = await fetch(`${API_URL}/anuncios`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(novoAnuncio),
+        body: fd,
       });
 
-      if (resposta.ok) {
+      if (resp.ok) {
         alert("✅ Anúncio enviado com sucesso e aguardando aprovação!");
         navigate("/pagamento-anuncio");
       } else {
-        const erro = await resposta.json();
+        const erro = await resp.json().catch(() => ({}));
         alert("❌ Erro ao enviar o anúncio: " + (erro?.mensagem || "Erro desconhecido."));
       }
     } catch (erro) {
       console.error("Erro ao enviar anúncio:", erro);
       alert("❌ Erro de conexão com o servidor.");
+    } finally {
+      setEnviando(false);
     }
   };
 
@@ -162,7 +178,7 @@ function FormularioCadastroVeiculo() {
           )}
         </p>
 
-        <form onSubmit={handleSubmit} className="formulario-grid">
+        <form onSubmit={handleSubmit} className="formulario-grid" encType="multipart/form-data">
           <div>
             <label>Fabricante da Carroceria:</label>
             <input type="text" name="fabricanteCarroceria" value={formulario.fabricanteCarroceria} onChange={handleChange} required />
@@ -250,8 +266,12 @@ function FormularioCadastroVeiculo() {
           </div>
 
           <div className="botoes" style={{ gridColumn: "1 / -1" }}>
-            <button type="submit" className="enviar">Enviar Anúncio</button>
-            <button type="button" className="cancelar" onClick={() => window.history.back()}>Cancelar</button>
+            <button type="submit" className="enviar" disabled={enviando}>
+              {enviando ? "Enviando..." : "Enviar Anúncio"}
+            </button>
+            <button type="button" className="cancelar" onClick={() => window.history.back()} disabled={enviando}>
+              Cancelar
+            </button>
           </div>
         </form>
       </div>

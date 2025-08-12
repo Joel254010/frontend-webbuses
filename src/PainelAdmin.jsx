@@ -1,7 +1,7 @@
-// src/PainelAdmin.jsx — HOTFIX de layout & performance
+// src/PainelAdmin.jsx — funcional com backend novo (Cloudinary) mantendo seu layout
 import React, { useState, useEffect, useCallback } from "react";
 import logo from "./assets/logo-webbuses.png";
-import { API_URL } from "./config";
+import { API, ADMIN_ENDPOINT } from "./config";
 
 function PainelAdmin() {
   const [anunciantes, setAnunciantes] = useState([]);
@@ -20,26 +20,32 @@ function PainelAdmin() {
     return v ?? "-";
   };
 
+  // Capa via Cloudinary quando disponível
   const buildCapa = useCallback((anuncio) => {
-    if (anuncio?.capaUrl) return anuncio.capaUrl;
-    if (anuncio?.fotoCapaUrl && /^https?:\/\//i.test(anuncio.fotoCapaUrl)) {
-      return anuncio.fotoCapaUrl;
-    }
-    return `${API_URL}/anuncios/${anuncio._id}/capa?w=240&q=65&format=webp`;
+    if (anuncio?.fotoCapaThumb) return anuncio.fotoCapaThumb;
+    if (anuncio?.fotoCapaUrl) return anuncio.fotoCapaUrl;
+    if (anuncio?.capaUrl) return anuncio.capaUrl; // compat antigo
+    return logo; // fallback visual
   }, []);
 
   const carregarAnuncios = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: "1", limit: "24" });
-      const r = await fetch(`${API_URL}/anuncios/admin?${params.toString()}`, {
-        headers: { "Cache-Control": "no-cache" }
+      // Backend expõe alias /admin (sem /api). ADMIN_ENDPOINT já aponta pra ele.
+      const r = await fetch(`${ADMIN_ENDPOINT}?${params.toString()}`, {
+        headers: { "Accept": "application/json", "Cache-Control": "no-cache" }
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const dados = await r.json();
-      const lista = Array.isArray(dados?.data) ? dados.data : Array.isArray(dados) ? dados : [];
 
-      // agrupa por anunciante com chave enxuta
+      const lista = Array.isArray(dados?.data)
+        ? dados.data
+        : Array.isArray(dados)
+        ? dados
+        : [];
+
+      // agrupa por anunciante (chave enxuta)
       const agrupados = {};
       for (const anuncio of lista) {
         const telefoneBruto = anuncio.telefoneBruto || (anuncio.telefone ? anuncio.telefone.replace(/\D/g, "") : "");
@@ -71,9 +77,10 @@ function PainelAdmin() {
 
   const atualizarStatusAnuncio = async (anuncioId, novoStatus) => {
     try {
-      await fetch(`${API_URL}/anuncios/${anuncioId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+      // Backend usa PUT /api/anuncios/:id/status
+      await fetch(`${API}/anuncios/${anuncioId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify({ status: novoStatus })
       });
       await carregarAnuncios();
@@ -86,7 +93,7 @@ function PainelAdmin() {
     if (!anuncioId) return alert("❌ ID do anúncio inválido.");
     if (!window.confirm("Deseja realmente excluir este anúncio?")) return;
     try {
-      const r = await fetch(`${API_URL}/anuncios/${anuncioId}`, { method: "DELETE" });
+      const r = await fetch(`${API}/anuncios/${anuncioId}`, { method: "DELETE" });
       if (r.ok) {
         await carregarAnuncios();
       } else {
@@ -105,7 +112,7 @@ function PainelAdmin() {
       if (anunciante) {
         for (const anuncio of anunciante.anuncios) {
           const id = anuncio._id || anuncio.id;
-          if (id) await fetch(`${API_URL}/anuncios/${id}`, { method: "DELETE" });
+          if (id) await fetch(`${API}/anuncios/${id}`, { method: "DELETE" });
         }
       }
       await carregarAnuncios();
@@ -158,11 +165,6 @@ function PainelAdmin() {
                   ? anuncio.imagensCount
                   : Array.isArray(anuncio.imagens) ? anuncio.imagens.length : 0;
 
-                const handleImgError = (e) => {
-                  const fallback = `${API_URL}/anuncios/${anuncio._id}/capa?w=240&q=65&format=webp`;
-                  if (e?.target?.src !== fallback) e.target.src = fallback;
-                };
-
                 return (
                   <div key={anuncio._id} style={styles.item}>
                     <img
@@ -173,8 +175,7 @@ function PainelAdmin() {
                       style={styles.thumb}
                       loading="lazy"
                       decoding="async"
-                      referrerPolicy="no-referrer"
-                      onError={handleImgError}
+                      onError={(e) => { if (e?.target?.src !== logo) e.target.src = logo; }}
                     />
                     <div style={styles.itemInfo}>
                       <div style={styles.titleRow}>
@@ -241,6 +242,8 @@ function PainelAdmin() {
 }
 
 const styles = {
+  // Mantive seu estilo atual. Se quiser voltar 100% ao CSS do site,
+  // basta remover esse objeto e usar classes.
   wrap: { maxWidth: 1100, margin: "0 auto", padding: "16px", color: "#111", background: "#f6f7f9" },
   header: { display: "flex", alignItems: "center", padding: "8px 12px", background: "#fff", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,.06)" },
   logo: { height: 44 },
