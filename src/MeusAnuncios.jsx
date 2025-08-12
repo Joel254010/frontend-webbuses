@@ -1,51 +1,104 @@
+// src/MeusAnuncios.jsx (ou MeusAnuncios.js)
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./LoginAnunciante.css";
-import { API_URL } from "./config";
+import { API_URL, API_BASE } from "./config";
 
-function MeusAnuncios() {
+/* ==== Helpers iguais aos usados no Admin/Home ==== */
+function normalizeUrlMaybe(value) {
+  if (typeof value !== "string") return "";
+  let s = value.trim();
+  if (!s) return "";
+  // JSON stringificado? {"secure_url":"..."}
+  if (s.startsWith("{") && s.endsWith("}")) {
+    try {
+      const o = JSON.parse(s);
+      if (o?.secure_url) return o.secure_url;
+      if (o?.url) return o.url;
+    } catch {}
+    return "";
+  }
+  if (/^https?:\/\//i.test(s)) return s;
+  if (s.startsWith("//")) return `https:${s}`;
+  if (s.startsWith("/")) return `${API_BASE}${s}`;
+  if (!s.includes("://")) return `${API_BASE}/${s}`; // caminho relativo
+  return "";
+}
+
+function getCapa(anuncio) {
+  const byPriority =
+    normalizeUrlMaybe(anuncio?.fotoCapaThumb) ||
+    normalizeUrlMaybe(anuncio?.fotoCapaUrl) ||
+    normalizeUrlMaybe(anuncio?.capaUrl);
+  if (byPriority) return byPriority;
+
+  const arr = anuncio?.imagens || anuncio?.fotos || anuncio?.images;
+  const img0 = Array.isArray(arr) ? arr[0] : null;
+  if (typeof img0 === "string") return normalizeUrlMaybe(img0);
+  if (img0?.secure_url) return img0.secure_url;
+  if (img0?.url) return normalizeUrlMaybe(img0.url);
+  if (img0?.path) return normalizeUrlMaybe(img0.path);
+  return "";
+}
+
+function formatarBRL(n) {
+  const v = typeof n === "number" ? n : Number(String(n).replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", "."));
+  return Number.isFinite(v) ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "-";
+}
+
+/* ==== Componente ==== */
+export default function MeusAnuncios() {
   const [anuncios, setAnuncios] = useState([]);
+  const [carregando, setCarregando] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-  const dados = JSON.parse(localStorage.getItem("anunciante_logado")) || {};
-  const telefoneBruto = (dados.telefoneBruto || dados.telefone || "").replace(/\D/g, "");
-  const email = (dados.email || "").toLowerCase();
+    const dados = JSON.parse(localStorage.getItem("anunciante_logado")) || {};
+    const telefoneBruto = String(dados.telefoneBruto || dados.telefone || "").replace(/\D/g, "");
+    const email = String(dados.email || "").toLowerCase();
 
-  const carregarMeusAnuncios = async () => {
-    try {
-      const resposta = await fetch(`${API_URL}/anuncios`);
-      const dados = await resposta.json();
-      const lista = Array.isArray(dados.anuncios) ? dados.anuncios : [];
+    const carregarMeusAnuncios = async () => {
+      setCarregando(true);
+      try {
+        const r = await fetch(`${API_URL}/anuncios`, { headers: { Accept: "application/json" } });
+        const data = await r.json();
 
-      const meus = lista.filter((anuncio) => {
-        const tel = (anuncio.telefoneBruto || anuncio.telefone || "").replace(/\D/g, "");
-        const emailAnuncio = (anuncio.email || "").toLowerCase();
-        return (
-          (telefoneBruto && tel === telefoneBruto) ||
-          (email && emailAnuncio === email)
-        );
-      });
+        const lista = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.anuncios)
+          ? data.anuncios
+          : [];
 
-      setAnuncios(
-        meus.filter(
-          (a) =>
-            a.status === "aprovado" ||
-            a.status === "vendido" ||
-            a.status === "pendente_venda"
-        )
-      );
-    } catch (erro) {
-      console.error("Erro ao carregar anúncios:", erro);
-    }
-  };
+        // normaliza + filtra por telefone/email do anunciante logado
+        const meus = lista
+          .map((a) => ({
+            ...a,
+            _id: a._id || a.id,
+            capaUrl: getCapa(a),
+          }))
+          .filter((a) => {
+            const tel = String(a.telefoneBruto || a.telefone || "").replace(/\D/g, "");
+            const emailAnuncio = String(a.email || "").toLowerCase();
+            return (telefoneBruto && tel === telefoneBruto) || (email && emailAnuncio === email);
+          })
+          // mantém somente estados visíveis ao anunciante
+          .filter((a) =>
+            ["aprovado", "vendido", "aguardando venda", "pendente_venda"].includes(String(a.status || "").toLowerCase())
+          );
 
-  carregarMeusAnuncios();
-}, []);
+        setAnuncios(meus);
+      } catch (erro) {
+        console.error("Erro ao carregar anúncios:", erro);
+        setAnuncios([]);
+      } finally {
+        setCarregando(false);
+      }
+    };
 
-  const handleEditar = (id) => {
-    navigate(`/editar-anuncio/${id}`);
-  };
+    carregarMeusAnuncios();
+  }, []);
+
+  const handleEditar = (id) => navigate(`/editar-anuncio/${id}`);
 
   const handleVendido = async (id) => {
     const confirmar = window.confirm(
@@ -54,16 +107,16 @@ function MeusAnuncios() {
     if (!confirmar) return;
 
     try {
-      await fetch(`${API_URL}/anuncios/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "pendente_venda" }),
+      // ✅ Alinha com o PainelAdmin: PUT /anuncios/:id/status
+      const r = await fetch(`${API_URL}/anuncios/${id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ status: "aguardando venda" }), // mesmo rótulo do Admin
       });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
 
       setAnuncios((prev) =>
-        prev.map((anuncio) =>
-          anuncio._id === id ? { ...anuncio, status: "pendente_venda" } : anuncio
-        )
+        prev.map((a) => (a._id === id ? { ...a, status: "aguardando venda" } : a))
       );
 
       alert("📩 Solicitação enviada. Aguarde a confirmação do administrador.");
@@ -92,108 +145,117 @@ function MeusAnuncios() {
           🔙 Voltar ao Painel
         </button>
 
-        <h2 style={{ textAlign: "center", marginBottom: "20px" }}>
-          📋 Meus Anúncios
-        </h2>
+        <h2 style={{ textAlign: "center", marginBottom: "20px" }}>📋 Meus Anúncios</h2>
 
-        {anuncios.length === 0 ? (
+        {carregando ? (
+          <p>Carregando…</p>
+        ) : anuncios.length === 0 ? (
           <p>Nenhum anúncio encontrado para este anunciante.</p>
         ) : (
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}
-          >
-            {anuncios.map((anuncio) => (
-              <div
-                key={anuncio._id}
-                style={{
-                  border: "1px solid #ccc",
-                  borderRadius: "8px",
-                  padding: "12px",
-                  backgroundColor: "#fff",
-                }}
-              >
-                <img
-                  src={
-                    anuncio.fotoCapaUrl ||
-                    (anuncio.imagens?.length > 0 ? anuncio.imagens[0] : "")
-                  }
-                  alt={anuncio.modeloCarroceria}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+            {anuncios.map((anuncio) => {
+              const id = anuncio._id || anuncio.id;
+              const capa = anuncio.capaUrl || "";
+              const km = anuncio.kilometragemAtual ?? anuncio.kilometragem ?? "-";
+              const lugares = anuncio.quantidadeLugares ?? anuncio.lugares ?? "-";
+              const status = String(anuncio.status || "").toLowerCase();
+
+              return (
+                <div
+                  key={id}
                   style={{
-                    width: "100%",
-                    height: "160px",
-                    objectFit: "cover",
-                    borderRadius: "6px",
-                    marginBottom: "10px",
+                    border: "1px solid #ccc",
+                    borderRadius: "8px",
+                    padding: "12px",
+                    backgroundColor: "#fff",
                   }}
-                />
-                <h4 style={{ marginBottom: "10px", color: "#0B1021" }}>
-                  {anuncio.modeloCarroceria}
-                </h4>
+                >
+                  {capa && (
+                    <img
+                      src={capa}
+                      alt={anuncio.modeloCarroceria || "Ônibus"}
+                      style={{
+                        width: "100%",
+                        height: "160px",
+                        objectFit: "cover",
+                        borderRadius: "6px",
+                        marginBottom: "10px",
+                      }}
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => (e.currentTarget.style.display = "none")}
+                    />
+                  )}
 
-                <p style={{ fontSize: "14px", marginBottom: "4px" }}>
-                  <strong>Kilometragem:</strong> {anuncio.kilometragemAtual || "-"}
-                </p>
-                <p style={{ fontSize: "14px", marginBottom: "8px" }}>
-                  <strong>Lugares:</strong> {anuncio.quantidadeLugares || "-"}
-                </p>
+                  <h4 style={{ marginBottom: "10px", color: "#0B1021" }}>
+                    {(anuncio.fabricanteCarroceria || "").trim()} {(anuncio.modeloCarroceria || "").trim()}
+                  </h4>
 
-                <p style={{ fontSize: "14px", marginBottom: "8px" }}>
-                  <strong>Status:</strong>{" "}
-                  {anuncio.status === "vendido"
-                    ? "✅ Vendido"
-                    : anuncio.status === "pendente_venda"
-                    ? "⏳ Aguardando Confirmação"
-                    : "🟢 Aprovado"}
-                </p>
+                  <p style={{ fontSize: "14px", marginBottom: "4px" }}>
+                    <strong>Preço:</strong> {formatarBRL(anuncio.valor)}
+                  </p>
+                  <p style={{ fontSize: "14px", marginBottom: "4px" }}>
+                    <strong>Kilometragem:</strong> {km}
+                  </p>
+                  <p style={{ fontSize: "14px", marginBottom: "8px" }}>
+                    <strong>Lugares:</strong> {lugares}
+                  </p>
 
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <button
-                    onClick={() => handleEditar(anuncio._id)}
-                    style={{
-                      flex: 1,
-                      backgroundColor: "#88fe03",
-                      border: "none",
-                      padding: "10px",
-                      borderRadius: "6px",
-                      fontWeight: "bold",
-                      color: "#0B1021",
-                      cursor: "pointer",
-                    }}
-                  >
-                    ✏️ Editar
-                  </button>
-                  <button
-                    onClick={() => handleVendido(anuncio._id)}
-                    disabled={
-                      anuncio.status === "vendido" ||
-                      anuncio.status === "pendente_venda"
-                    }
-                    style={{
-                      flex: 1,
-                      backgroundColor:
-                        anuncio.status === "vendido" || anuncio.status === "pendente_venda"
-                          ? "#bbb"
-                          : "#f44336",
-                      border: "none",
-                      padding: "10px",
-                      borderRadius: "6px",
-                      fontWeight: "bold",
-                      color: "white",
-                      cursor:
-                        anuncio.status === "vendido" || anuncio.status === "pendente_venda"
-                          ? "not-allowed"
-                          : "pointer",
-                    }}
-                  >
-                    {anuncio.status === "vendido"
+                  <p style={{ fontSize: "14px", marginBottom: "8px" }}>
+                    <strong>Status:</strong>{" "}
+                    {status === "vendido"
                       ? "✅ Vendido"
-                      : anuncio.status === "pendente_venda"
+                      : status === "aguardando venda" || status === "pendente_venda"
                       ? "⏳ Aguardando Confirmação"
-                      : "✅ Vendido"}
-                  </button>
+                      : "🟢 Aprovado"}
+                  </p>
+
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button
+                      onClick={() => handleEditar(id)}
+                      style={{
+                        flex: 1,
+                        backgroundColor: "#88fe03",
+                        border: "none",
+                        padding: "10px",
+                        borderRadius: "6px",
+                        fontWeight: "bold",
+                        color: "#0B1021",
+                        cursor: "pointer",
+                      }}
+                    >
+                      ✏️ Editar
+                    </button>
+                    <button
+                      onClick={() => handleVendido(id)}
+                      disabled={status === "vendido" || status === "aguardando venda" || status === "pendente_venda"}
+                      style={{
+                        flex: 1,
+                        backgroundColor:
+                          status === "vendido" || status === "aguardando venda" || status === "pendente_venda"
+                            ? "#bbb"
+                            : "#f44336",
+                        border: "none",
+                        padding: "10px",
+                        borderRadius: "6px",
+                        fontWeight: "bold",
+                        color: "white",
+                        cursor:
+                          status === "vendido" || status === "aguardando venda" || status === "pendente_venda"
+                            ? "not-allowed"
+                            : "pointer",
+                      }}
+                    >
+                      {status === "vendido"
+                        ? "✅ Vendido"
+                        : status === "aguardando venda" || status === "pendente_venda"
+                        ? "⏳ Aguardando Confirmação"
+                        : "✅ Marcar Vendido"}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -201,5 +263,4 @@ function MeusAnuncios() {
   );
 }
 
-export default MeusAnuncios;
 
