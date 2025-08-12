@@ -1,11 +1,11 @@
-// ✅ Home.jsx – agora com getCapa expandido para Cloudinary e variantes
+// ✅ Home.jsx – robusto para Cloudinary (string JSON, //url, etc.)
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Home.css";
 import logoWebBuses from "./assets/logo-webbuses.png";
 import banner1 from "./assets/banner1.png";
 import banner2 from "./assets/banner2.png";
-import banner3 from "./assets/banner3.png"; // ✅ nome único
+import banner3 from "./assets/banner3.png";
 import { API_URL } from "./config";
 
 /* Utils */
@@ -28,27 +28,53 @@ function slugModeloFromTipo(tipo = "") {
   return raw.replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 }
 
-// 🔎 Novo getCapa cobre todas as variantes que já vi com Cloudinary
+// 🔎 getCapa super-robusto
 function getCapa(anuncio) {
-  // capaUrl pode ser string
-  if (typeof anuncio?.capaUrl === "string") return anuncio.capaUrl;
-  // capaUrl pode ser objeto com secure_url/url
+  // 1) capaUrl pode ser string
+  if (typeof anuncio?.capaUrl === "string") {
+    const s = anuncio.capaUrl.trim();
+
+    // 1.a) se for JSON stringificado: {"secure_url":"..."}
+    if (s.startsWith("{") && s.endsWith("}")) {
+      try {
+        const obj = JSON.parse(s);
+        if (obj?.secure_url) return obj.secure_url;
+        if (obj?.url) return obj.url;
+      } catch (_) {
+        // ignora parse error
+      }
+    }
+
+    // 1.b) se já for http(s)
+    if (/^https?:\/\//i.test(s)) return s;
+
+    // 1.c) se vier como //res.cloudinary.com/...
+    if (s.startsWith("//")) return `https:${s}`;
+
+    // 1.d) outros formatos (caminho relativo / public_id puro)
+    // -> sem cloud_name não dá pra montar URL com segurança; retorna vazio
+    return "";
+  }
+
+  // 2) capaUrl pode ser objeto com secure_url/url
   if (anuncio?.capaUrl?.secure_url) return anuncio.capaUrl.secure_url;
   if (anuncio?.capaUrl?.url) return anuncio.capaUrl.url;
 
-  // capa pode vir em outro campo
+  // 3) outros campos comuns
   if (anuncio?.capa?.secure_url) return anuncio.capa.secure_url;
   if (anuncio?.capa?.url) return anuncio.capa.url;
-
-  // variantes que já vi: coverUrl, capaImagem
   if (anuncio?.coverUrl?.secure_url) return anuncio.coverUrl.secure_url;
   if (typeof anuncio?.coverUrl === "string") return anuncio.coverUrl;
   if (anuncio?.capaImagem?.secure_url) return anuncio.capaImagem.secure_url;
 
-  // array imagens/fotos/images
+  // 4) arrays (imagens/fotos/images)
   const arr = anuncio?.imagens || anuncio?.fotos || anuncio?.images;
   const img0 = Array.isArray(arr) ? arr[0] : null;
-  if (typeof img0 === "string") return img0;
+  if (typeof img0 === "string") {
+    if (/^https?:\/\//i.test(img0)) return img0;
+    if (img0.startsWith("//")) return `https:${img0}`;
+    return "";
+  }
   if (img0?.secure_url) return img0.secure_url;
   if (img0?.url) return img0.url;
   if (img0?.path) return img0.path;
@@ -96,16 +122,26 @@ function Home() {
           : [];
 
         const normalizados = bruto
-          .map((a) => ({
-            ...a,
-            capaUrl: getCapa(a),
-            slugModelo: a.slugModelo ?? slugModeloFromTipo(a.tipoModelo || ""),
-            _valorNumber: parseValorBRL(a.valor),
-          }))
+          .map((a) => {
+            const capaUrl = getCapa(a);
+            return {
+              ...a,
+              capaUrl,
+              slugModelo: a.slugModelo ?? slugModeloFromTipo(a.tipoModelo || ""),
+              _valorNumber: parseValorBRL(a.valor),
+            };
+          })
           .filter((a) => a?.status === "aprovado");
 
         setTodosAnuncios(normalizados);
         setAnuncios(normalizados);
+
+        // 🔍 debug opcional: veja qual capa está sendo usada
+        const dbg = normalizados.slice(0, 8).map((x) => ({
+          id: x._id,
+          capaUsada: x.capaUrl || "(vazio)",
+        }));
+        console.table(dbg);
       } catch (e) {
         console.error("Erro ao buscar anúncios:", e);
         setErro("Não foi possível carregar os anúncios.");
