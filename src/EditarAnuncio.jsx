@@ -1,75 +1,130 @@
+// src/EditarAnuncio.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { API_URL } from "./config";
 
-function EditarAnuncio() {
+function toDigits(v) {
+  return String(v || "").replace(/\D/g, "");
+}
+function parseNumberMaybe(v) {
+  if (typeof v === "number") return v;
+  if (typeof v === "string") {
+    const limpo = v.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+    const n = Number(limpo);
+    return Number.isFinite(n) ? n : v; // se não der parse, devolve original
+  }
+  return v;
+}
+
+export default function EditarAnuncio() {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [formulario, setFormulario] = useState(null);
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
-    const carregarAnuncio = async () => {
+    (async () => {
+      setCarregando(true);
       try {
-        const resposta = await fetch(`${API_URL}/anuncios/${id}`);
-        if (!resposta.ok) throw new Error("Anúncio não encontrado.");
+        const r = await fetch(`${API_URL}/anuncios/${id}`, {
+          headers: { Accept: "application/json" },
+          cache: "no-store",
+        });
+        if (!r.ok) throw new Error("Anúncio não encontrado.");
+        const full = await r.json();
 
-        const anuncio = await resposta.json();
-        setFormulario(anuncio);
-      } catch (erro) {
+        // pode vir direto ou dentro de { data }
+        const a = (full && full._id && full) || (full?.data && full.data._id && full.data) || full;
+
+        // ⚠️ mapeia só os campos editáveis (NÃO traz imagens/Cloudinary)
+        setFormulario({
+          fabricanteCarroceria: a.fabricanteCarroceria || "",
+          modeloCarroceria: a.modeloCarroceria || "",
+          fabricanteChassis: a.fabricanteChassis || "",
+          modeloChassis: a.modeloChassis || "",
+          kilometragem: a.kilometragem ?? a.kilometragemAtual ?? "",
+          lugares: a.lugares ?? a.quantidadeLugares ?? "",
+          cor: a.cor || "",
+          anoModelo: a.anoModelo || "",
+          valor: a.valor ?? "",
+          descricao: a.descricao || "",
+          nomeAnunciante: a.nomeAnunciante || "",
+          telefoneBruto: a.telefoneBruto || a.telefone || "",
+          email: a.email || "",
+          localizacao: {
+            cidade: a.localizacao?.cidade || "",
+            estado: a.localizacao?.estado || "",
+          },
+          // status permanece controlado pelo admin; aqui só reenviamos para análise
+        });
+      } catch (e) {
         alert("❌ Anúncio não encontrado ou erro de conexão.");
         navigate("/meus-anuncios");
+      } finally {
+        setCarregando(false);
       }
-    };
-
-    carregarAnuncio();
+    })();
   }, [id, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormulario((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormulario((p) => ({ ...p, [name]: value }));
   };
-
   const handleLocalizacaoChange = (e) => {
     const { name, value } = e.target;
-    setFormulario((prev) => ({
-      ...prev,
-      localizacao: {
-        ...prev.localizacao,
-        [name]: value,
-      },
-    }));
+    setFormulario((p) => ({ ...p, localizacao: { ...(p?.localizacao || {}), [name]: value } }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formulario) return;
 
+    setSalvando(true);
     try {
-      const resposta = await fetch(`${API_URL}/anuncios/${id}`, {
-        method: "PUT", // ✅ usa PUT agora
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formulario,
-          status: "pendente", // volta para análise
-          dataEnvio: new Date().toISOString(),
-        }),
+      // ✅ envia apenas campos seguros (sem imagens do Cloudinary)
+      const payload = {
+        fabricanteCarroceria: (formulario.fabricanteCarroceria || "").trim(),
+        modeloCarroceria: (formulario.modeloCarroceria || "").trim(),
+        fabricanteChassis: (formulario.fabricanteChassis || "").trim(),
+        modeloChassis: (formulario.modeloChassis || "").trim(),
+        kilometragem: parseNumberMaybe(formulario.kilometragem),
+        lugares: parseNumberMaybe(formulario.lugares),
+        cor: (formulario.cor || "").trim(),
+        anoModelo: (formulario.anoModelo || "").trim(),
+        valor: parseNumberMaybe(formulario.valor),
+        descricao: formulario.descricao || "",
+        nomeAnunciante: (formulario.nomeAnunciante || "").trim(),
+        telefoneBruto: toDigits(formulario.telefoneBruto),
+        email: String(formulario.email || "").toLowerCase().trim(),
+        localizacao: {
+          cidade: (formulario.localizacao?.cidade || "").trim(),
+          estado: (formulario.localizacao?.estado || "").trim(),
+        },
+        // Se o seu fluxo exige nova análise ao editar:
+        status: "pendente",
+        dataEnvio: new Date().toISOString(),
+      };
+
+      const r = await fetch(`${API_URL}/anuncios/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(payload),
       });
 
-      if (resposta.ok) {
-        alert("✅ Anúncio atualizado com sucesso. Enviado para nova análise.");
-        navigate("/meus-anuncios");
-      } else {
-        alert("❌ Falha ao atualizar o anúncio.");
-      }
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      alert("✅ Anúncio atualizado com sucesso. Enviado para nova análise.");
+      navigate("/meus-anuncios");
     } catch (erro) {
       console.error("Erro ao salvar:", erro);
-      alert("❌ Erro de conexão.");
+      alert("❌ Falha ao atualizar o anúncio.");
+    } finally {
+      setSalvando(false);
     }
   };
 
-  if (!formulario) return null;
+  if (carregando || !formulario) return <div className="login-page"><div className="login-box">Carregando…</div></div>;
 
   return (
     <div className="login-page">
@@ -98,26 +153,26 @@ function EditarAnuncio() {
             maxLength="5000"
             value={formulario.descricao}
             onChange={handleChange}
-            style={{
-              width: "100%",
-              marginTop: "16px",
-              padding: "12px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              fontSize: "15px",
-              resize: "vertical",
-            }}
+            style={{ width: "100%", marginTop: 16, padding: 12, borderRadius: 6, border: "1px solid #ccc", fontSize: 15, resize: "vertical" }}
           />
 
-          <p style={{ marginTop: "20px", color: "#999" }}>
+          <p style={{ marginTop: 20, color: "#999" }}>
             ⚠️ As fotos não podem ser alteradas nesta edição. Se quiser mudar imagens, crie um novo anúncio.
           </p>
 
-          <div style={{ marginTop: "24px", display: "flex", gap: "10px" }}>
-            <button type="submit" style={{ backgroundColor: "#88fe03", color: "#0B1021", fontWeight: "bold", padding: "10px 16px", border: "none", borderRadius: "6px", cursor: "pointer" }}>
-              Salvar Alterações
+          <div style={{ marginTop: 24, display: "flex", gap: 10 }}>
+            <button
+              type="submit"
+              disabled={salvando}
+              style={{ backgroundColor: "#88fe03", color: "#0B1021", fontWeight: "bold", padding: "10px 16px", border: "none", borderRadius: 6, cursor: "pointer" }}
+            >
+              {salvando ? "Salvando…" : "Salvar Alterações"}
             </button>
-            <button type="button" onClick={() => navigate("/meus-anuncios")} style={{ backgroundColor: "#ccc", color: "#0B1021", fontWeight: "bold", padding: "10px 16px", border: "none", borderRadius: "6px", cursor: "pointer" }}>
+            <button
+              type="button"
+              onClick={() => navigate("/meus-anuncios")}
+              style={{ backgroundColor: "#ccc", color: "#0B1021", fontWeight: "bold", padding: "10px 16px", border: "none", borderRadius: 6, cursor: "pointer" }}
+            >
               Cancelar
             </button>
           </div>
@@ -126,5 +181,3 @@ function EditarAnuncio() {
     </div>
   );
 }
-
-export default EditarAnuncio;
