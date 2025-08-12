@@ -1,5 +1,4 @@
-// ✅ Home.jsx 100% funcional e revisado com filtro por modelo atualizado
-
+// ✅ Home.jsx – robusto para Cloudinary + array raiz ou { anuncios: [] }
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Home.css";
@@ -9,21 +8,57 @@ import banner2 from "./assets/banner2.png";
 import banner3 from "./assets/banner3.png"; // ✅ nome único
 import { API_URL } from "./config";
 
+/* Utils */
 function removerAcentos(str) {
-  return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  return String(str || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
 }
 
-// ✅ gera slugModelo no front caso a API não envie (virtual não vem na listagem leve)
+// Gera slugModelo no front caso a API não envie (virtual não vem na listagem leve)
 function slugModeloFromTipo(tipo = "") {
   const raw = removerAcentos(String(tipo).toLowerCase());
   if (raw.includes("utilit")) return "utilitarios";
   if (raw.includes("micro")) return "micro-onibus";
-  if (raw.includes("4x2"))   return "onibus-4x2";
-  if (raw.includes("6x2"))   return "onibus-6x2";
-  if (raw.includes("urbano"))return "onibus-urbano";
-  if (raw.includes("low"))   return "lowdriver";
-  if (raw.includes("double"))return "doubledecker";
+  if (raw.includes("4x2")) return "onibus-4x2";
+  if (raw.includes("6x2")) return "onibus-6x2";
+  if (raw.includes("urbano")) return "onibus-urbano";
+  if (raw.includes("low")) return "lowdriver";
+  if (raw.includes("double")) return "doubledecker";
   return raw.replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+}
+
+// Tenta descobrir a URL da capa (Cloudinary ou simples)
+function getCapa(anuncio) {
+  // 1) campo direto
+  if (anuncio?.capaUrl) return anuncio.capaUrl;
+
+  // 2) objeto capa: { secure_url | url }
+  if (anuncio?.capa?.secure_url) return anuncio.capa.secure_url;
+  if (anuncio?.capa?.url) return anuncio.capa.url;
+
+  // 3) imagens array (string ou objeto com secure_url/url)
+  const img0 = anuncio?.imagens?.[0];
+  if (!img0) return "";
+
+  if (typeof img0 === "string") return img0;
+  if (img0?.secure_url) return img0.secure_url;
+  if (img0?.url) return img0.url;
+
+  return "";
+}
+
+// Converte valor vindo como string “R$ 250.000,00” ou número
+function parseValorBRL(valor) {
+  if (typeof valor === "number") return valor;
+  if (typeof valor === "string") {
+    // remove R$, pontos de milhar e troca vírgula por ponto
+    const limpo = valor.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+    const num = Number(limpo);
+    return Number.isFinite(num) ? num : 0;
+  }
+  return 0;
 }
 
 function Home() {
@@ -33,53 +68,81 @@ function Home() {
   const [todosAnuncios, setTodosAnuncios] = useState([]);
   const [busca, setBusca] = useState("");
   const [filtroModelo, setFiltroModelo] = useState(null);
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState("");
+
   const anunciosPorPagina = 12;
 
   const [curtidas, setCurtidas] = useState({});
   const [curtido, setCurtido] = useState({});
   const [menuCompartilharAtivo, setMenuCompartilharAtivo] = useState(null);
 
+  // 🔄 Carregar anúncios
   useEffect(() => {
     const buscarAnuncios = async () => {
+      setCarregando(true);
+      setErro("");
       try {
         const resposta = await fetch(`${API_URL}/anuncios`);
         const dados = await resposta.json();
 
-        // ✅ garante slugModelo e usa capa oficial
-        const lista = (Array.isArray(dados.anuncios) ? dados.anuncios : []).map((a) => ({
-          ...a,
-          slugModelo: a.slugModelo ?? slugModeloFromTipo(a.tipoModelo || ""),
-          capaUrl: a.capaUrl || a.imagens?.[0] || "",
-        }));
+        // Aceita array direto ou { anuncios: [] }
+        const bruto = Array.isArray(dados)
+          ? dados
+          : Array.isArray(dados?.anuncios)
+          ? dados.anuncios
+          : [];
 
-        setTodosAnuncios(lista);
-        setAnuncios(lista);
-      } catch (erro) {
-        console.error("Erro ao buscar anúncios:", erro);
+        // Normaliza + filtra aprovados
+        const normalizados = bruto
+          .map((a) => {
+            const capaUrl = getCapa(a);
+            return {
+              ...a,
+              capaUrl,
+              slugModelo: a.slugModelo ?? slugModeloFromTipo(a.tipoModelo || ""),
+              _valorNumber: parseValorBRL(a.valor),
+            };
+          })
+          .filter((a) => a?.status === "aprovado");
+
+        setTodosAnuncios(normalizados);
+        setAnuncios(normalizados);
+      } catch (e) {
+        console.error("Erro ao buscar anúncios:", e);
+        setErro("Não foi possível carregar os anúncios.");
         setTodosAnuncios([]);
         setAnuncios([]);
+      } finally {
+        setCarregando(false);
       }
     };
     buscarAnuncios();
   }, []);
 
+  // 🔎 Filtros (modelo + busca)
   useEffect(() => {
-    let filtrados = todosAnuncios;
+    let filtrados = [...todosAnuncios];
 
     if (filtroModelo) {
-      filtrados = filtrados.filter(anuncio => anuncio.slugModelo === filtroModelo);
+      filtrados = filtrados.filter((anuncio) => anuncio.slugModelo === filtroModelo);
     }
 
     if (busca) {
-      filtrados = filtrados.filter(anuncio => {
+      const alvo = removerAcentos(busca);
+      filtrados = filtrados.filter((anuncio) => {
         const campos = [
           anuncio.tipoModelo,
           anuncio.modeloCarroceria,
           anuncio.modeloChassis,
           anuncio.fabricanteCarroceria,
-          anuncio.fabricanteChassis
-        ].join(" ");
-        return removerAcentos(campos).includes(removerAcentos(busca));
+          anuncio.fabricanteChassis,
+          anuncio?.localizacao?.cidade,
+          anuncio?.localizacao?.estado,
+        ]
+          .filter(Boolean)
+          .join(" ");
+        return removerAcentos(campos).includes(alvo);
       });
     }
 
@@ -87,17 +150,20 @@ function Home() {
     setPaginaAtual(1);
   }, [filtroModelo, busca, todosAnuncios]);
 
+  // 🎞️ Carrossel
   useEffect(() => {
     const slides = document.querySelectorAll(".slide");
+    if (!slides.length) return;
     let index = 0;
     const intervalo = setInterval(() => {
-      slides.forEach(slide => slide.classList.remove("ativo"));
+      slides.forEach((slide) => slide.classList.remove("ativo"));
       index = (index + 1) % slides.length;
       slides[index].classList.add("ativo");
     }, 3000);
     return () => clearInterval(intervalo);
   }, []);
 
+  // ❤️ Curtidas (localStorage)
   useEffect(() => {
     const curtidasSalvas = JSON.parse(localStorage.getItem("curtidas_webbuses")) || {};
     setCurtido(curtidasSalvas);
@@ -109,14 +175,14 @@ function Home() {
       alert("Você já curtiu esse anúncio.");
       return;
     }
-    setCurtidas(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+    setCurtidas((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
     const atualizado = { ...curtidasSalvas, [id]: true };
     setCurtido(atualizado);
     localStorage.setItem("curtidas_webbuses", JSON.stringify(atualizado));
   };
 
   const toggleMenuCompartilhar = (id) => {
-    setMenuCompartilharAtivo(prev => (prev === id ? null : id));
+    setMenuCompartilharAtivo((prev) => (prev === id ? null : id));
   };
 
   const copiarLink = (id) => {
@@ -128,7 +194,7 @@ function Home() {
 
   const compartilharWhatsApp = (anuncio) => {
     const texto = encodeURIComponent(
-      `🚍 Veja esse ônibus à venda:\n${anuncio.fabricanteCarroceria} ${anuncio.modeloCarroceria}\nhttps://backend-webbuses.onrender.com/preview/${anuncio._id}`
+      `🚍 Veja esse ônibus à venda:\n${anuncio.fabricanteCarroceria || ""} ${anuncio.modeloCarroceria || ""}\nhttps://backend-webbuses.onrender.com/preview/${anuncio._id}`
     );
     window.open(`https://wa.me/?text=${texto}`, "_blank");
   };
@@ -138,7 +204,7 @@ function Home() {
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, "_blank");
   };
 
-  const totalPaginas = Math.ceil(anuncios.length / anunciosPorPagina);
+  const totalPaginas = Math.ceil(anuncios.length / anunciosPorPagina) || 1;
   const anunciosExibidos = anuncios.slice(
     (paginaAtual - 1) * anunciosPorPagina,
     paginaAtual * anunciosPorPagina
@@ -200,54 +266,79 @@ function Home() {
 
       <main className="anuncios">
         <h2>Últimos anúncios</h2>
+
+        {carregando && <p style={{ color: "#fff", opacity: 0.8 }}>Carregando anúncios…</p>}
+        {erro && !carregando && <p style={{ color: "#ff6868" }}>{erro}</p>}
+
         <div className="grid-anuncios">
-          {anunciosExibidos.map((anuncio) => (
-            <div className="card-anuncio" key={anuncio._id}>
-              {/* ✅ usa a capa oficial vinda do backend */}
-              <img
-                src={anuncio.capaUrl}
-                className="imagem-capa"
-                alt={anuncio.modeloCarroceria}
-                loading="lazy"
-                decoding="async"
-              />
-              <div className="info-anuncio">
-                <h3>{anuncio.fabricanteCarroceria} {anuncio.modeloCarroceria}</h3>
-                <p className="valor">
-                  {Number(anuncio.valor).toLocaleString("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  })}
-                </p>
-                <span>{anuncio.kilometragem} km</span><br />
-                <span>{anuncio.localizacao?.cidade} - {anuncio.localizacao?.estado}</span>
-                <div className="acoes-anuncio">
-                  <Link to={`/onibus/${anuncio._id}`}>
-                    <button className="botao-saiba-mais">Saiba Mais</button>
-                  </Link>
-                  <button
-                    className={`botao-curtir ${curtido[anuncio._id] ? "curtido" : ""}`}
-                    onClick={() => handleCurtir(anuncio._id)}
-                    disabled={!!curtido[anuncio._id]}
-                  >
-                    ❤️ {curtidas[anuncio._id] || 0}
-                  </button>
-                  <div className="botao-compartilhar-container">
-                    <button className="botao-compartilhar" onClick={() => toggleMenuCompartilhar(anuncio._id)}>
-                      🔗 Compartilhar
+          {!carregando && !erro && anunciosExibidos.map((anuncio) => {
+            const capa = anuncio.capaUrl || "";
+            return (
+              <div className="card-anuncio" key={anuncio._id}>
+                {/* ✅ usa a capa oficial vinda do backend / Cloudinary */}
+                {capa ? (
+                  <img
+                    src={capa}
+                    className="imagem-capa"
+                    alt={anuncio.modeloCarroceria || "Ônibus"}
+                    loading="lazy"
+                    decoding="async"
+                    onError={(e) => {
+                      // evita quebrar o layout caso a URL da capa esteja inválida
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : null}
+
+                <div className="info-anuncio">
+                  <h3>
+                    {anuncio.fabricanteCarroceria || ""} {anuncio.modeloCarroceria || ""}
+                  </h3>
+                  <p className="valor">
+                    {parseValorBRL(anuncio.valor).toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })}
+                  </p>
+                  <span>{anuncio.kilometragem} km</span>
+                  <br />
+                  <span>
+                    {anuncio.localizacao?.cidade} - {anuncio.localizacao?.estado}
+                  </span>
+
+                  <div className="acoes-anuncio">
+                    <Link to={`/onibus/${anuncio._id}`}>
+                      <button className="botao-saiba-mais">Saiba Mais</button>
+                    </Link>
+
+                    <button
+                      className={`botao-curtir ${curtido[anuncio._id] ? "curtido" : ""}`}
+                      onClick={() => handleCurtir(anuncio._id)}
+                      disabled={!!curtido[anuncio._id]}
+                    >
+                      ❤️ {curtidas[anuncio._id] || 0}
                     </button>
-                    {menuCompartilharAtivo === anuncio._id && (
-                      <div className="menu-compartilhar">
-                        <button onClick={() => copiarLink(anuncio._id)}>🔗 Copiar Link</button>
-                        <button onClick={() => compartilharWhatsApp(anuncio)}>📲 WhatsApp</button>
-                        <button onClick={() => compartilharFacebook(anuncio._id)}>📢 Facebook</button>
-                      </div>
-                    )}
+
+                    <div className="botao-compartilhar-container">
+                      <button
+                        className="botao-compartilhar"
+                        onClick={() => toggleMenuCompartilhar(anuncio._id)}
+                      >
+                        🔗 Compartilhar
+                      </button>
+                      {menuCompartilharAtivo === anuncio._id && (
+                        <div className="menu-compartilhar">
+                          <button onClick={() => copiarLink(anuncio._id)}>🔗 Copiar Link</button>
+                          <button onClick={() => compartilharWhatsApp(anuncio)}>📲 WhatsApp</button>
+                          <button onClick={() => compartilharFacebook(anuncio._id)}>📢 Facebook</button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {totalPaginas > 1 && (
