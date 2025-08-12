@@ -1,4 +1,4 @@
-// ✅ Home.jsx – robusto para Cloudinary + array raiz ou { anuncios: [] }
+// ✅ Home.jsx – agora com getCapa expandido para Cloudinary e variantes
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Home.css";
@@ -16,7 +16,6 @@ function removerAcentos(str) {
     .toLowerCase();
 }
 
-// Gera slugModelo no front caso a API não envie (virtual não vem na listagem leve)
 function slugModeloFromTipo(tipo = "") {
   const raw = removerAcentos(String(tipo).toLowerCase());
   if (raw.includes("utilit")) return "utilitarios";
@@ -29,31 +28,37 @@ function slugModeloFromTipo(tipo = "") {
   return raw.replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 }
 
-// Tenta descobrir a URL da capa (Cloudinary ou simples)
+// 🔎 Novo getCapa cobre todas as variantes que já vi com Cloudinary
 function getCapa(anuncio) {
-  // 1) campo direto
-  if (anuncio?.capaUrl) return anuncio.capaUrl;
+  // capaUrl pode ser string
+  if (typeof anuncio?.capaUrl === "string") return anuncio.capaUrl;
+  // capaUrl pode ser objeto com secure_url/url
+  if (anuncio?.capaUrl?.secure_url) return anuncio.capaUrl.secure_url;
+  if (anuncio?.capaUrl?.url) return anuncio.capaUrl.url;
 
-  // 2) objeto capa: { secure_url | url }
+  // capa pode vir em outro campo
   if (anuncio?.capa?.secure_url) return anuncio.capa.secure_url;
   if (anuncio?.capa?.url) return anuncio.capa.url;
 
-  // 3) imagens array (string ou objeto com secure_url/url)
-  const img0 = anuncio?.imagens?.[0];
-  if (!img0) return "";
+  // variantes que já vi: coverUrl, capaImagem
+  if (anuncio?.coverUrl?.secure_url) return anuncio.coverUrl.secure_url;
+  if (typeof anuncio?.coverUrl === "string") return anuncio.coverUrl;
+  if (anuncio?.capaImagem?.secure_url) return anuncio.capaImagem.secure_url;
 
+  // array imagens/fotos/images
+  const arr = anuncio?.imagens || anuncio?.fotos || anuncio?.images;
+  const img0 = Array.isArray(arr) ? arr[0] : null;
   if (typeof img0 === "string") return img0;
   if (img0?.secure_url) return img0.secure_url;
   if (img0?.url) return img0.url;
+  if (img0?.path) return img0.path;
 
   return "";
 }
 
-// Converte valor vindo como string “R$ 250.000,00” ou número
 function parseValorBRL(valor) {
   if (typeof valor === "number") return valor;
   if (typeof valor === "string") {
-    // remove R$, pontos de milhar e troca vírgula por ponto
     const limpo = valor.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
     const num = Number(limpo);
     return Number.isFinite(num) ? num : 0;
@@ -72,12 +77,10 @@ function Home() {
   const [erro, setErro] = useState("");
 
   const anunciosPorPagina = 12;
-
   const [curtidas, setCurtidas] = useState({});
   const [curtido, setCurtido] = useState({});
   const [menuCompartilharAtivo, setMenuCompartilharAtivo] = useState(null);
 
-  // 🔄 Carregar anúncios
   useEffect(() => {
     const buscarAnuncios = async () => {
       setCarregando(true);
@@ -86,24 +89,19 @@ function Home() {
         const resposta = await fetch(`${API_URL}/anuncios`);
         const dados = await resposta.json();
 
-        // Aceita array direto ou { anuncios: [] }
         const bruto = Array.isArray(dados)
           ? dados
           : Array.isArray(dados?.anuncios)
           ? dados.anuncios
           : [];
 
-        // Normaliza + filtra aprovados
         const normalizados = bruto
-          .map((a) => {
-            const capaUrl = getCapa(a);
-            return {
-              ...a,
-              capaUrl,
-              slugModelo: a.slugModelo ?? slugModeloFromTipo(a.tipoModelo || ""),
-              _valorNumber: parseValorBRL(a.valor),
-            };
-          })
+          .map((a) => ({
+            ...a,
+            capaUrl: getCapa(a),
+            slugModelo: a.slugModelo ?? slugModeloFromTipo(a.tipoModelo || ""),
+            _valorNumber: parseValorBRL(a.valor),
+          }))
           .filter((a) => a?.status === "aprovado");
 
         setTodosAnuncios(normalizados);
@@ -120,14 +118,9 @@ function Home() {
     buscarAnuncios();
   }, []);
 
-  // 🔎 Filtros (modelo + busca)
   useEffect(() => {
     let filtrados = [...todosAnuncios];
-
-    if (filtroModelo) {
-      filtrados = filtrados.filter((anuncio) => anuncio.slugModelo === filtroModelo);
-    }
-
+    if (filtroModelo) filtrados = filtrados.filter((anuncio) => anuncio.slugModelo === filtroModelo);
     if (busca) {
       const alvo = removerAcentos(busca);
       filtrados = filtrados.filter((anuncio) => {
@@ -139,18 +132,14 @@ function Home() {
           anuncio.fabricanteChassis,
           anuncio?.localizacao?.cidade,
           anuncio?.localizacao?.estado,
-        ]
-          .filter(Boolean)
-          .join(" ");
+        ].filter(Boolean).join(" ");
         return removerAcentos(campos).includes(alvo);
       });
     }
-
     setAnuncios(filtrados);
     setPaginaAtual(1);
   }, [filtroModelo, busca, todosAnuncios]);
 
-  // 🎞️ Carrossel
   useEffect(() => {
     const slides = document.querySelectorAll(".slide");
     if (!slides.length) return;
@@ -163,7 +152,6 @@ function Home() {
     return () => clearInterval(intervalo);
   }, []);
 
-  // ❤️ Curtidas (localStorage)
   useEffect(() => {
     const curtidasSalvas = JSON.parse(localStorage.getItem("curtidas_webbuses")) || {};
     setCurtido(curtidasSalvas);
@@ -266,7 +254,6 @@ function Home() {
 
       <main className="anuncios">
         <h2>Últimos anúncios</h2>
-
         {carregando && <p style={{ color: "#fff", opacity: 0.8 }}>Carregando anúncios…</p>}
         {erro && !carregando && <p style={{ color: "#ff6868" }}>{erro}</p>}
 
@@ -275,42 +262,27 @@ function Home() {
             const capa = anuncio.capaUrl || "";
             return (
               <div className="card-anuncio" key={anuncio._id}>
-                {/* ✅ usa a capa oficial vinda do backend / Cloudinary */}
-                {capa ? (
+                {capa && (
                   <img
                     src={capa}
                     className="imagem-capa"
                     alt={anuncio.modeloCarroceria || "Ônibus"}
                     loading="lazy"
                     decoding="async"
-                    onError={(e) => {
-                      // evita quebrar o layout caso a URL da capa esteja inválida
-                      e.currentTarget.style.display = "none";
-                    }}
+                    onError={(e) => { e.currentTarget.style.display = "none"; }}
                   />
-                ) : null}
-
+                )}
                 <div className="info-anuncio">
-                  <h3>
-                    {anuncio.fabricanteCarroceria || ""} {anuncio.modeloCarroceria || ""}
-                  </h3>
+                  <h3>{anuncio.fabricanteCarroceria || ""} {anuncio.modeloCarroceria || ""}</h3>
                   <p className="valor">
-                    {parseValorBRL(anuncio.valor).toLocaleString("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    })}
+                    {parseValorBRL(anuncio.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                   </p>
-                  <span>{anuncio.kilometragem} km</span>
-                  <br />
-                  <span>
-                    {anuncio.localizacao?.cidade} - {anuncio.localizacao?.estado}
-                  </span>
-
+                  <span>{anuncio.kilometragem} km</span><br />
+                  <span>{anuncio.localizacao?.cidade} - {anuncio.localizacao?.estado}</span>
                   <div className="acoes-anuncio">
                     <Link to={`/onibus/${anuncio._id}`}>
                       <button className="botao-saiba-mais">Saiba Mais</button>
                     </Link>
-
                     <button
                       className={`botao-curtir ${curtido[anuncio._id] ? "curtido" : ""}`}
                       onClick={() => handleCurtir(anuncio._id)}
@@ -318,12 +290,8 @@ function Home() {
                     >
                       ❤️ {curtidas[anuncio._id] || 0}
                     </button>
-
                     <div className="botao-compartilhar-container">
-                      <button
-                        className="botao-compartilhar"
-                        onClick={() => toggleMenuCompartilhar(anuncio._id)}
-                      >
+                      <button className="botao-compartilhar" onClick={() => toggleMenuCompartilhar(anuncio._id)}>
                         🔗 Compartilhar
                       </button>
                       {menuCompartilharAtivo === anuncio._id && (
