@@ -1,4 +1,4 @@
-// src/PainelAdmin.jsx — painel admin integrado ao backend novo (Cloudinary)
+// src/PainelAdmin.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import logo from "./assets/logo-webbuses.png";
 import { API, ADMIN_ENDPOINT } from "./config";
@@ -6,6 +6,11 @@ import { API, ADMIN_ENDPOINT } from "./config";
 function PainelAdmin() {
   const [anunciantes, setAnunciantes] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // ↓↓↓ NOVO: estado para abrir/fechar e guardar fotos por anúncio
+  const [abertas, setAbertas] = useState({});   // { [id]: boolean }
+  const [fotosMap, setFotosMap] = useState({}); // { [id]: string[] }
+  const [loadingFotos, setLoadingFotos] = useState({}); // { [id]: boolean }
 
   const formatarValor = (v) => {
     if (typeof v === "number" && !Number.isNaN(v)) {
@@ -15,16 +20,15 @@ function PainelAdmin() {
           currency: "BRL",
           maximumFractionDigits: 0,
         }).format(v);
-      } catch {/* ignore */}
+      } catch {}
     }
     return v ?? "-";
   };
 
-  // Escolhe capa priorizando Cloudinary (thumb > url); cai no logo se faltar
   const buildCapa = useCallback((anuncio) => {
     if (anuncio?.fotoCapaThumb) return anuncio.fotoCapaThumb;
     if (anuncio?.fotoCapaUrl)   return anuncio.fotoCapaUrl;
-    if (anuncio?.capaUrl)       return anuncio.capaUrl; // compat legado
+    if (anuncio?.capaUrl)       return anuncio.capaUrl;
     return logo;
   }, []);
 
@@ -32,22 +36,14 @@ function PainelAdmin() {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: "1", limit: "24" });
-
-      // Sem "Cache-Control" pra não gerar preflight; usa cache: "no-store"
       const r = await fetch(`${ADMIN_ENDPOINT}?${params.toString()}`, {
         headers: { Accept: "application/json" },
         cache: "no-store",
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-
       const dados = await r.json();
-      const lista = Array.isArray(dados?.data)
-        ? dados.data
-        : Array.isArray(dados)
-        ? dados
-        : [];
+      const lista = Array.isArray(dados?.data) ? dados.data : Array.isArray(dados) ? dados : [];
 
-      // Agrupa por anunciante
       const agrupados = {};
       for (const anuncio of lista) {
         const telefoneBruto =
@@ -68,14 +64,12 @@ function PainelAdmin() {
             email: anuncio.email || "-",
             cidade: anuncio.localizacao?.cidade || "-",
             estado: anuncio.localizacao?.estado || "-",
-            dataCadastro:
-              anuncio.dataCadastro || new Date().toLocaleDateString("pt-BR"),
+            dataCadastro: anuncio.dataCadastro || new Date().toLocaleDateString("pt-BR"),
             anuncios: [],
           };
         }
         agrupados[chave].anuncios.push(anuncio);
       }
-
       setAnunciantes(Object.values(agrupados));
     } catch (e) {
       console.error("Erro ao buscar anúncios (admin):", e);
@@ -87,14 +81,53 @@ function PainelAdmin() {
 
   useEffect(() => { carregarAnuncios(); }, []);
 
+  // ↓↓↓ NOVO: abre/fecha e carrega fotos sob demanda
+  const toggleFotos = async (anuncio) => {
+    const id = anuncio._id || anuncio.id;
+    if (!id) return;
+
+    // se já está aberta, só fecha
+    if (abertas[id]) {
+      setAbertas((p) => ({ ...p, [id]: false }));
+      return;
+    }
+
+    // se não temos fotos ainda, buscar do backend
+    if (!fotosMap[id]) {
+      try {
+        setLoadingFotos((p) => ({ ...p, [id]: true }));
+        const r = await fetch(`${API}/anuncios/${id}`, {
+          headers: { Accept: "application/json" },
+          cache: "no-store",
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const full = await r.json();
+
+        let fotos = Array.isArray(full.imagens) ? full.imagens.filter(Boolean) : [];
+
+        // garante que a capa entra como primeira foto (se não constar no array)
+        if (full.fotoCapaUrl && !fotos.includes(full.fotoCapaUrl)) {
+          fotos = [full.fotoCapaUrl, ...fotos];
+        }
+
+        setFotosMap((p) => ({ ...p, [id]: fotos }));
+      } catch (err) {
+        console.error("Erro ao carregar fotos:", err);
+        setFotosMap((p) => ({ ...p, [id]: [] }));
+      } finally {
+        setLoadingFotos((p) => ({ ...p, [id]: false }));
+      }
+    }
+
+    // abre
+    setAbertas((p) => ({ ...p, [id]: true }));
+  };
+
   const atualizarStatusAnuncio = async (anuncioId, novoStatus) => {
     try {
       const r = await fetch(`${API}/anuncios/${anuncioId}/status`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ status: novoStatus }),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -172,23 +205,25 @@ function PainelAdmin() {
                   <span>🗓 {anunciante.dataCadastro}</span>
                 </div>
               </div>
-              <button
-                onClick={() => excluirAnunciante(anunciante.id)}
-                style={styles.btnDangerSm}
-              >
+              <button onClick={() => excluirAnunciante(anunciante.id)} style={styles.btnDangerSm}>
                 Excluir anunciante
               </button>
             </div>
 
             <div style={styles.grid}>
               {anunciante.anuncios.map((anuncio) => {
+                const id = anuncio._id;
                 const capa = buildCapa(anuncio);
-                const fotosTotal = typeof anuncio.imagensCount === "number"
-                  ? anuncio.imagensCount
-                  : Array.isArray(anuncio.imagens) ? anuncio.imagens.length : 0;
+                const fotosTotal = Array.isArray(fotosMap[id])
+                  ? fotosMap[id].length
+                  : (typeof anuncio.imagensCount === "number"
+                      ? anuncio.imagensCount
+                      : Array.isArray(anuncio.imagens) ? anuncio.imagens.length : 0);
+
+                const aberto = !!abertas[id];
 
                 return (
-                  <div key={anuncio._id} style={styles.item}>
+                  <div key={id} style={styles.item}>
                     <img
                       src={capa}
                       alt="Capa"
@@ -208,32 +243,58 @@ function PainelAdmin() {
                         <span>{formatarValor(anuncio.valor)}</span>
                         <button
                           style={styles.btnLight}
-                          onClick={() => window.open(`/onibus/${anuncio._id}?from=admin`, "_blank")}
-                          title="Abrir anúncio"
+                          onClick={() => toggleFotos(anuncio)}
+                          title={aberto ? "Ocultar fotos" : "Ver fotos"}
                         >
-                          Ver fotos ({fotosTotal})
+                          {aberto ? "Ocultar fotos" : `Ver fotos (${fotosTotal || 0})`}
                         </button>
                       </div>
 
+                      {/* ↓↓↓ NOVO: galeria embutida */}
+                      {aberto && (
+                        <div style={{ marginTop: 10 }}>
+                          {loadingFotos[id] ? (
+                            <div style={styles.muted}>Carregando fotos…</div>
+                          ) : (fotosMap[id] && fotosMap[id].length > 0) ? (
+                            <div style={styles.gridFotos}>
+                              {fotosMap[id].map((url, idx) => (
+                                <img
+                                  key={idx}
+                                  src={url}
+                                  alt={`foto ${idx + 1}`}
+                                  style={styles.foto}
+                                  loading="lazy"
+                                  decoding="async"
+                                  onError={(e) => { if (e?.target?.src !== logo) e.target.src = logo; }}
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={styles.muted}>Sem fotos para este anúncio.</div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Ações */}
                       {anuncio.status === "pendente" || anuncio.status === "aguardando pagamento" ? (
                         <div style={styles.actions}>
-                          <button onClick={() => atualizarStatusAnuncio(anuncio._id, "aprovado")} style={styles.btnOk}>
+                          <button onClick={() => atualizarStatusAnuncio(id, "aprovado")} style={styles.btnOk}>
                             Aprovar
                           </button>
-                          <button onClick={() => atualizarStatusAnuncio(anuncio._id, "rejeitado")} style={styles.btnWarn}>
+                          <button onClick={() => atualizarStatusAnuncio(id, "rejeitado")} style={styles.btnWarn}>
                             Rejeitar
                           </button>
-                          <button onClick={() => excluirAnuncio(anuncio._id)} style={styles.btnDanger}>
+                          <button onClick={() => excluirAnuncio(id)} style={styles.btnDanger}>
                             Excluir
                           </button>
                         </div>
                       ) : anuncio.status === "aguardando venda" ? (
                         <div style={styles.actions}>
                           <span style={styles.badgeWarn}>🚧 Aguardando Confirmação</span>
-                          <button onClick={() => atualizarStatusAnuncio(anuncio._id, "vendido")} style={styles.btnWarn}>
+                          <button onClick={() => atualizarStatusAnuncio(id, "vendido")} style={styles.btnWarn}>
                             Confirmar venda
                           </button>
-                          <button onClick={() => excluirAnuncio(anuncio._id)} style={styles.btnDanger}>
+                          <button onClick={() => excluirAnuncio(id)} style={styles.btnDanger}>
                             Excluir
                           </button>
                         </div>
@@ -246,7 +307,7 @@ function PainelAdmin() {
                           ) : (
                             <span style={styles.badgeDanger}>❌ Rejeitado</span>
                           )}
-                          <button onClick={() => excluirAnuncio(anuncio._id)} style={styles.btnDanger}>
+                          <button onClick={() => excluirAnuncio(id)} style={styles.btnDanger}>
                             Excluir
                           </button>
                         </div>
@@ -291,6 +352,20 @@ const styles = {
   btnDanger: { background: "#dc3545", color: "#fff", border: "none", padding: "8px 12px", borderRadius: 6, cursor: "pointer" },
   btnDangerSm: { background: "#dc3545", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" },
   btnLight: { background: "#fff", border: "1px solid #ddd", padding: "6px 10px", borderRadius: 6, cursor: "pointer" },
+
+  // ↓↓↓ NOVOS estilos da galeria
+  gridFotos: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+    gap: 8,
+  },
+  foto: {
+    width: "100%",
+    height: 100,
+    objectFit: "cover",
+    borderRadius: 6,
+    background: "#eaeaea",
+  },
 };
 
 export default PainelAdmin;
