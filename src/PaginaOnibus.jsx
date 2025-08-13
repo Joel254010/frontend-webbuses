@@ -44,6 +44,27 @@ function getCapa(anuncio) {
   return "";
 }
 
+// 🔹 KM: pega o primeiro campo preenchido como TEXTO cru (exatamente o que o anunciante digitou)
+function getKmLabelFrom(obj = {}) {
+  const first = (...vals) => {
+    for (const v of vals) {
+      if (v === null || v === undefined) continue;
+      const s = String(v).trim();
+      if (s) return s;
+    }
+    return undefined;
+  };
+  return first(
+    obj.kmLabel,              // caso venha do backend novo
+    obj.kilometragem,         // seu campo principal
+    obj.kilometragemAtual,
+    obj.km,
+    obj.rodagem,
+    obj.quilometragem,
+    obj.quilometragemAtual
+  );
+}
+
 export default function PaginaOnibus() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -65,7 +86,6 @@ export default function PaginaOnibus() {
       setImagemAtual("");
 
       try {
-        // ✅ usa o mesmo endpoint do Admin
         const r = await fetch(`${API_URL}/anuncios/${id}`, {
           headers: { Accept: "application/json" },
           cache: "no-store",
@@ -93,7 +113,10 @@ export default function PaginaOnibus() {
           fotosArr = [capa, ...fotosArr];
         }
 
-        setOnibus(item);
+        // 🔹 injeta kmLabel calculado (texto cru)
+        const kmLabel = getKmLabelFrom(item);
+
+        setOnibus({ ...item, kmLabel });
         setFotos(fotosArr);
         setImagemAtual(fotosArr[0] || capa || "");
       } catch (e) {
@@ -131,6 +154,15 @@ export default function PaginaOnibus() {
       </div>
     );
   }
+
+  // WhatsApp / modelo
+  const telefoneBruto = String(onibus?.telefoneBruto || "").replace(/\D/g, "");
+  const modelo = `${onibus?.fabricanteCarroceria || ""} ${onibus?.modeloCarroceria || ""}`.trim();
+  const mensagem = `Olá! Gostaria de maiores informações sobre o ônibus ${modelo} anunciado no Web Buses.`;
+  const linkWhatsapp =
+    telefoneBruto.length >= 10
+      ? `https://wa.me/55${telefoneBruto}?text=${encodeURIComponent(mensagem)}`
+      : null;
 
   return (
     <div className="pagina-onibus">
@@ -174,25 +206,15 @@ export default function PaginaOnibus() {
             {Number(onibus?.valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
           </p>
           <p className="anunciante">📞 Anunciante: {onibus?.nomeAnunciante || "-"}</p>
-          {(() => {
-            const telefoneBruto = String(onibus?.telefoneBruto || "").replace(/\D/g, "");
-            const modelo = `${onibus?.fabricanteCarroceria || ""} ${onibus?.modeloCarroceria || ""}`.trim();
-            const mensagem = `Olá! Gostaria de maiores informações sobre o ônibus ${modelo} anunciado no Web Buses.`;
-            return telefoneBruto.length >= 10 ? (
-              <a
-                href={`https://wa.me/55${telefoneBruto}?text=${encodeURIComponent(mensagem)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-whatsapp"
-              >
-                💬 Falar no WhatsApp
-              </a>
-            ) : (
-              <span className="btn-whatsapp disabled" aria-disabled="true">
-                💬 WhatsApp indisponível
-              </span>
-            );
-          })()}
+          {linkWhatsapp ? (
+            <a href={linkWhatsapp} target="_blank" rel="noreferrer" className="btn-whatsapp">
+              💬 Falar no WhatsApp
+            </a>
+          ) : (
+            <span className="btn-whatsapp disabled" aria-disabled="true">
+              💬 WhatsApp indisponível
+            </span>
+          )}
         </section>
 
         <section className="bloco-informacoes">
@@ -208,9 +230,10 @@ export default function PaginaOnibus() {
               <span><strong>Localização:</strong> {onibus?.localizacao?.cidade} - {onibus?.localizacao?.estado}</span>
             </div>
             <div className="card-detalhe">
-              <span><strong>Rodagem:</strong> {onibus?.kilometragem} km</span>
-              <span><strong>Poltronas:</strong> {onibus?.lugares}</span>
-              <span><strong>Cor:</strong> {onibus?.cor}</span>
+              {/* 🔹 Mostra exatamente o texto do anunciante; sem colar ' km' */}
+              <span><strong>Rodagem:</strong> {onibus?.kmLabel ?? "Não informado"}</span>
+              <span><strong>Poltronas:</strong> {onibus?.lugares || "-"}</span>
+              <span><strong>Cor:</strong> {onibus?.cor || "-"}</span>
             </div>
           </div>
         </section>
@@ -232,5 +255,3 @@ export default function PaginaOnibus() {
     </div>
   );
 }
-
-
