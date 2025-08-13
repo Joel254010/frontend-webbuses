@@ -43,7 +43,6 @@ function normalizeUrlMaybe(value) {
   if (/^https?:\/\//i.test(s)) return s;
   if (s.startsWith("//")) return `https:${s}`;
   if (s.startsWith("/")) return `${API_BASE}${s}`;
-  // caminho relativo (ex.: uploads/abc.jpg)
   if (!s.includes("://")) return `${API_BASE}/${s}`;
   return "";
 }
@@ -57,7 +56,6 @@ function getCapa(anuncio) {
 
   if (byPriority) return byPriority;
 
-  // arrays: imagens / fotos / images
   const arr = anuncio?.imagens || anuncio?.fotos || anuncio?.images;
   const img0 = Array.isArray(arr) ? arr[0] : null;
 
@@ -79,29 +77,27 @@ function parseValorBRL(valor) {
   return 0;
 }
 
-/* ===== KM: fallbacks + formatação ===== */
-function numberFromAny(v) {
-  if (typeof v === "number") return v;
-  if (typeof v === "string") {
-    const n1 = Number(v.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", "."));
-    if (Number.isFinite(n1)) return n1;
-    const n2 = Number(v.replace(/[^\d]/g, ""));
-    if (Number.isFinite(n2)) return n2;
+/* ===== KM: texto livre (preserva o que o anunciante digitou) ===== */
+function firstNonEmpty(...vals) {
+  for (const v of vals) {
+    if (v === null || v === undefined) continue;
+    const s = String(v).trim();
+    if (s) return s;
   }
   return undefined;
 }
-function getKmFromAnuncio(a) {
-  const raw =
-    a.kilometragem ??
-    a.kilometragemAtual ??
-    a.km ??
-    a.rodagem ??
-    a.quilometragem ??
-    a.quilometragemAtual;
-  const n = numberFromAny(raw);
-  return Number.isFinite(n) ? n : undefined;
+function getKmLabelFromAnuncio(a) {
+  // pega a primeira variação que vier preenchida
+  return firstNonEmpty(
+    a.kilometragem,
+    a.kilometragemAtual,
+    a.km,
+    a.rodagem,
+    a.quilometragem,
+    a.quilometragemAtual
+  );
 }
-/* ===================================== */
+/* =============================================================== */
 
 function Home() {
   const navigate = useNavigate();
@@ -135,7 +131,7 @@ function Home() {
             capaUrl: getCapa(a),
             slugModelo: a.slugModelo ?? slugModeloFromTipo(a.tipoModelo || ""),
             _valorNumber: parseValorBRL(a.valor),
-            _kmNumber: getKmFromAnuncio(a), // 👈 tenta a partir da lista
+            _kmLabel: getKmLabelFromAnuncio(a), // 👈 texto livre
           }))
           .filter((a) => a?.status === "aprovado");
 
@@ -143,7 +139,11 @@ function Home() {
         setAnuncios(normalizados);
 
         console.table(
-          normalizados.slice(0, 8).map((x) => ({ id: x._id, capaUsada: x.capaUrl || "(vazio)", km: x._kmNumber ?? "(sem km na lista)" }))
+          normalizados.slice(0, 8).map((x) => ({
+            id: x._id,
+            capaUsada: x.capaUrl || "(vazio)",
+            kmLabel: x._kmLabel ?? "(sem km na lista)",
+          }))
         );
       } catch (e) {
         console.error("Erro ao buscar anúncios:", e);
@@ -157,7 +157,7 @@ function Home() {
     buscarAnuncios();
   }, []);
 
-  // [KM] fallback: se a listagem não trouxe KM, buscar do /anuncios/:id/meta para os cards visíveis
+  // [KM] fallback: se a listagem não trouxe KM, buscar do /anuncios/:id/meta para os cards visíveis (preservando texto cru)
   useEffect(() => {
     if (!todosAnuncios.length) return;
 
@@ -165,8 +165,7 @@ function Home() {
     const end = paginaAtual * anunciosPorPagina;
     const pagina = todosAnuncios.slice(start, end);
 
-    const alvos = pagina.filter((a) => !Number.isFinite(a._kmNumber)).slice(0, anunciosPorPagina); // limita à página
-
+    const alvos = pagina.filter((a) => !a._kmLabel).slice(0, anunciosPorPagina);
     if (alvos.length === 0) return;
 
     let cancelado = false;
@@ -180,24 +179,21 @@ function Home() {
           });
           if (!r.ok) continue;
           const meta = await r.json();
-          const km = getKmFromAnuncio(meta);
-          if (!Number.isFinite(km)) continue;
+          const label = getKmLabelFromAnuncio(meta);
+          if (!label) continue;
           if (cancelado) break;
 
-          // aplica o KM somente ao item correspondente (em todosAnuncios)
           setTodosAnuncios((prev) =>
-            prev.map((x) => (x._id === a._id ? { ...x, _kmNumber: km } : x))
+            prev.map((x) => (x._id === a._id ? { ...x, _kmLabel: label } : x))
           );
-        } catch (e) {
-          // silencioso
-        }
+        } catch {}
       }
     })();
 
     return () => {
       cancelado = true;
     };
-  }, [todosAnuncios, paginaAtual, anunciosPorPagina]); // ✅ removido API_URL; adicionado anúnciosPorPagina
+  }, [todosAnuncios, paginaAtual, anunciosPorPagina]);
 
   useEffect(() => {
     let filtrados = [...todosAnuncios];
@@ -213,6 +209,7 @@ function Home() {
           anuncio.fabricanteChassis,
           anuncio?.localizacao?.cidade,
           anuncio?.localizacao?.estado,
+          anuncio?._kmLabel, // permite buscar por "não informado" etc.
         ]
           .filter(Boolean)
           .join(" ");
@@ -366,11 +363,7 @@ function Home() {
                         currency: "BRL",
                       })}
                     </p>
-                    <span>
-                      {Number.isFinite(anuncio._kmNumber)
-                        ? `${anuncio._kmNumber.toLocaleString("pt-BR")} km`
-                        : "— km"}
-                    </span>
+                    <span>{anuncio._kmLabel || "Não informado"}</span>
                     <br />
                     <span>
                       {anuncio.localizacao?.cidade} - {anuncio.localizacao?.estado}
