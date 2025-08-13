@@ -135,14 +135,16 @@ function Home() {
             capaUrl: getCapa(a),
             slugModelo: a.slugModelo ?? slugModeloFromTipo(a.tipoModelo || ""),
             _valorNumber: parseValorBRL(a.valor),
-            _kmNumber: getKmFromAnuncio(a), // 👈 novo
+            _kmNumber: getKmFromAnuncio(a), // 👈 tenta a partir da lista
           }))
           .filter((a) => a?.status === "aprovado");
 
         setTodosAnuncios(normalizados);
         setAnuncios(normalizados);
 
-        console.table(normalizados.slice(0, 8).map((x) => ({ id: x._id, capaUsada: x.capaUrl || "(vazio)" })));
+        console.table(
+          normalizados.slice(0, 8).map((x) => ({ id: x._id, capaUsada: x.capaUrl || "(vazio)", km: x._kmNumber ?? "(sem km na lista)" }))
+        );
       } catch (e) {
         console.error("Erro ao buscar anúncios:", e);
         setErro("Não foi possível carregar os anúncios.");
@@ -154,6 +156,48 @@ function Home() {
     };
     buscarAnuncios();
   }, []);
+
+  // [KM] fallback: se a listagem não trouxe KM, buscar do /anuncios/:id/meta para os cards visíveis
+  useEffect(() => {
+    if (!todosAnuncios.length) return;
+
+    const start = (paginaAtual - 1) * anunciosPorPagina;
+    const end = paginaAtual * anunciosPorPagina;
+    const pagina = todosAnuncios.slice(start, end);
+
+    const alvos = pagina.filter((a) => !Number.isFinite(a._kmNumber)).slice(0, anunciosPorPagina); // limita à página
+
+    if (alvos.length === 0) return;
+
+    let cancelado = false;
+
+    (async () => {
+      for (const a of alvos) {
+        try {
+          const r = await fetch(`${API_URL}/anuncios/${a._id}/meta`, {
+            headers: { Accept: "application/json" },
+            cache: "no-store",
+          });
+          if (!r.ok) continue;
+          const meta = await r.json();
+          const km = getKmFromAnuncio(meta);
+          if (!Number.isFinite(km)) continue;
+          if (cancelado) break;
+
+          // aplica o KM somente ao item correspondente (em todosAnuncios)
+          setTodosAnuncios((prev) =>
+            prev.map((x) => (x._id === a._id ? { ...x, _kmNumber: km } : x))
+          );
+        } catch (e) {
+          // silencioso
+        }
+      }
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [API_URL, todosAnuncios, paginaAtual]); // reavalia ao trocar de página ou ao normalizar
 
   useEffect(() => {
     let filtrados = [...todosAnuncios];
