@@ -79,6 +79,30 @@ function parseValorBRL(valor) {
   return 0;
 }
 
+/* ===== KM: fallbacks + formatação ===== */
+function numberFromAny(v) {
+  if (typeof v === "number") return v;
+  if (typeof v === "string") {
+    const n1 = Number(v.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", "."));
+    if (Number.isFinite(n1)) return n1;
+    const n2 = Number(v.replace(/[^\d]/g, ""));
+    if (Number.isFinite(n2)) return n2;
+  }
+  return undefined;
+}
+function getKmFromAnuncio(a) {
+  const raw =
+    a.kilometragem ??
+    a.kilometragemAtual ??
+    a.km ??
+    a.rodagem ??
+    a.quilometragem ??
+    a.quilometragemAtual;
+  const n = numberFromAny(raw);
+  return Number.isFinite(n) ? n : undefined;
+}
+/* ===================================== */
+
 function Home() {
   const navigate = useNavigate();
   const [paginaAtual, setPaginaAtual] = useState(1);
@@ -111,6 +135,7 @@ function Home() {
             capaUrl: getCapa(a),
             slugModelo: a.slugModelo ?? slugModeloFromTipo(a.tipoModelo || ""),
             _valorNumber: parseValorBRL(a.valor),
+            _kmNumber: getKmFromAnuncio(a), // 👈 novo
           }))
           .filter((a) => a?.status === "aprovado");
 
@@ -297,7 +322,11 @@ function Home() {
                         currency: "BRL",
                       })}
                     </p>
-                    <span>{anuncio.kilometragem} km</span>
+                    <span>
+                      {Number.isFinite(anuncio._kmNumber)
+                        ? `${anuncio._kmNumber.toLocaleString("pt-BR")} km`
+                        : "— km"}
+                    </span>
                     <br />
                     <span>
                       {anuncio.localizacao?.cidade} - {anuncio.localizacao?.estado}
