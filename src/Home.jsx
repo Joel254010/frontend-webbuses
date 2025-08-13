@@ -197,7 +197,7 @@ function Home() {
     return () => {
       cancelado = true;
     };
-  }, [API_URL, todosAnuncios, paginaAtual]); // reavalia ao trocar de página ou ao normalizar
+  }, [todosAnuncios, paginaAtual, anunciosPorPagina]); // ✅ removido API_URL; adicionado anúnciosPorPagina
 
   useEffect(() => {
     let filtrados = [...todosAnuncios];
