@@ -4,10 +4,22 @@ import logo from "./assets/logo-webbuses.png";
 import { API, ADMIN_ENDPOINT } from "./config";
 
 function PainelAdmin() {
-  const [anunciantes, setAnunciantes] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // 🔢 paginação
+  const [page, setPage] = useState(1);
+  const [limit] = useState(50); // ajuste se quiser
+  const [total, setTotal] = useState(null); // X-Total-Count ou dados.total
+  const [lastCount, setLastCount] = useState(0);
 
-  // ↓↓↓ NOVO: estado para abrir/fechar e guardar fotos por anúncio
+  // lista “crua” acumulada (todas as páginas já carregadas)
+  const [itens, setItens] = useState([]);
+
+  // agrupado por anunciante (UI atual)
+  const [anunciantes, setAnunciantes] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [carregandoMais, setCarregandoMais] = useState(false);
+
+  // ↓↓↓ estado para abrir/fechar e guardar fotos por anúncio
   const [abertas, setAbertas] = useState({});   // { [id]: boolean }
   const [fotosMap, setFotosMap] = useState({}); // { [id]: string[] }
   const [loadingFotos, setLoadingFotos] = useState({}); // { [id]: boolean }
@@ -32,67 +44,128 @@ function PainelAdmin() {
     return logo;
   }, []);
 
-  const carregarAnuncios = async () => {
-    setLoading(true);
+  // 🔧 agrupa anúncios acumulados por anunciante (telefone/email/nome…)
+  const agrupar = useCallback((lista) => {
+    const agrupados = {};
+    for (const anuncio of lista) {
+      const telefoneBruto =
+        anuncio.telefoneBruto ||
+        (anuncio.telefone ? anuncio.telefone.replace(/\D/g, "") : "");
+      const chave =
+        telefoneBruto ||
+        anuncio.email ||
+        anuncio.nomeAnunciante ||
+        anuncio.anunciante ||
+        anuncio._id;
+
+      if (!agrupados[chave]) {
+        agrupados[chave] = {
+          id: chave,
+          nome: anuncio.nomeAnunciante || "-",
+          telefone: telefoneBruto || "-",
+          email: anuncio.email || "-",
+          cidade: anuncio.localizacao?.cidade || "-",
+          estado: anuncio.localizacao?.estado || "-",
+          dataCadastro: anuncio.dataCadastro || new Date().toLocaleDateString("pt-BR"),
+          anuncios: [],
+        };
+      }
+      agrupados[chave].anuncios.push(anuncio);
+    }
+    return Object.values(agrupados);
+  }, []);
+
+  // ⚡ carrega uma página (append = acumular)
+  const carregarPagina = useCallback(async (pageToLoad = 1, append = false) => {
+    // loading states separados para UX
+    if (append) setCarregandoMais(true);
+    else setLoading(true);
+
     try {
-      const params = new URLSearchParams({ page: "1", limit: "24" });
+      const params = new URLSearchParams({ page: String(pageToLoad), limit: String(limit) });
       const r = await fetch(`${ADMIN_ENDPOINT}?${params.toString()}`, {
         headers: { Accept: "application/json" },
         cache: "no-store",
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
+
+      const totalHeader = r.headers.get("X-Total-Count");
+      let totalServer = totalHeader ? parseInt(totalHeader, 10) : null;
+
       const dados = await r.json();
-      const lista = Array.isArray(dados?.data) ? dados.data : Array.isArray(dados) ? dados : [];
 
-      const agrupados = {};
-      for (const anuncio of lista) {
-        const telefoneBruto =
-          anuncio.telefoneBruto ||
-          (anuncio.telefone ? anuncio.telefone.replace(/\D/g, "") : "");
-        const chave =
-          telefoneBruto ||
-          anuncio.email ||
-          anuncio.nomeAnunciante ||
-          anuncio.anunciante ||
-          anuncio._id;
+      // aceita { data: [] } OU [] direto; aceita { total } se existir
+      const novaLista = Array.isArray(dados?.data)
+        ? dados.data
+        : Array.isArray(dados)
+        ? dados
+        : [];
 
-        if (!agrupados[chave]) {
-          agrupados[chave] = {
-            id: chave,
-            nome: anuncio.nomeAnunciante || "-",
-            telefone: telefoneBruto || "-",
-            email: anuncio.email || "-",
-            cidade: anuncio.localizacao?.cidade || "-",
-            estado: anuncio.localizacao?.estado || "-",
-            dataCadastro: anuncio.dataCadastro || new Date().toLocaleDateString("pt-BR"),
-            anuncios: [],
-          };
-        }
-        agrupados[chave].anuncios.push(anuncio);
+      if (typeof dados?.total === "number" && !Number.isNaN(dados.total)) {
+        totalServer = dados.total;
       }
-      setAnunciantes(Object.values(agrupados));
+
+      // evita duplicados (_id/id)
+      let atualizados = [];
+      setItens((prev) => {
+        const map = new Map(prev.map((x) => [(x._id || x.id), x]));
+        for (const item of novaLista) {
+          map.set(item._id || item.id, item);
+        }
+        atualizados = Array.from(map.values());
+        return atualizados;
+      });
+
+      // aplica agrupamento para UI
+      setAnunciantes(agrupar(atualizados));
+
+      // metadados de paginação
+      setLastCount(novaLista.length);
+      if (totalServer !== null && Number.isFinite(totalServer)) {
+        setTotal(totalServer);
+      }
+
+      // atualiza o “page” atual para o que foi carregado
+      setPage(pageToLoad);
     } catch (e) {
       console.error("Erro ao buscar anúncios (admin):", e);
-      setAnunciantes([]);
+      if (!append) {
+        setItens([]);
+        setAnunciantes([]);
+        setTotal(0);
+      }
     } finally {
-      setLoading(false);
+      if (append) setCarregandoMais(false);
+      else setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [limit, ADMIN_ENDPOINT, agrupar]);
+
+  // primeira carga
+  useEffect(() => {
+    carregarPagina(1, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const hasMore = total !== null
+    ? itens.length < total
+    : lastCount === limit; // fallback quando API não envia total
+
+  const handleCarregarMais = () => {
+    if (carregandoMais || loading) return;
+    carregarPagina(page + 1, true);
   };
 
-  useEffect(() => { carregarAnuncios(); }, []);
-
-  // ↓↓↓ NOVO: abre/fecha e carrega fotos sob demanda
+  // ↓↓↓ abre/fecha e carrega fotos sob demanda
   const toggleFotos = async (anuncio) => {
     const id = anuncio._id || anuncio.id;
     if (!id) return;
 
-    // se já está aberta, só fecha
     if (abertas[id]) {
       setAbertas((p) => ({ ...p, [id]: false }));
       return;
     }
 
-    // se não temos fotos ainda, buscar do backend
     if (!fotosMap[id]) {
       try {
         setLoadingFotos((p) => ({ ...p, [id]: true }));
@@ -104,8 +177,6 @@ function PainelAdmin() {
         const full = await r.json();
 
         let fotos = Array.isArray(full.imagens) ? full.imagens.filter(Boolean) : [];
-
-        // garante que a capa entra como primeira foto (se não constar no array)
         if (full.fotoCapaUrl && !fotos.includes(full.fotoCapaUrl)) {
           fotos = [full.fotoCapaUrl, ...fotos];
         }
@@ -119,7 +190,6 @@ function PainelAdmin() {
       }
     }
 
-    // abre
     setAbertas((p) => ({ ...p, [id]: true }));
   };
 
@@ -131,7 +201,9 @@ function PainelAdmin() {
         body: JSON.stringify({ status: novoStatus }),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      await carregarAnuncios();
+
+      // recarrega a página atual mantendo os itens acumulados consistentes
+      await carregarPagina(1, false); // se preferir, recarregue só a página atual
     } catch (erro) {
       console.error("Erro ao atualizar status:", erro);
       alert("Não foi possível atualizar o status.");
@@ -147,7 +219,11 @@ function PainelAdmin() {
         const e = await r.json().catch(() => ({}));
         throw new Error(e?.mensagem || e?.erro || `HTTP ${r.status}`);
       }
-      await carregarAnuncios();
+      // remove localmente sem refetch total
+      setItens((prev) => prev.filter((a) => (a._id || a.id) !== anuncioId));
+      setAnunciantes((prev) =>
+        agrupar(itens.filter((a) => (a._id || a.id) !== anuncioId))
+      );
     } catch (erro) {
       console.error("Erro ao excluir anúncio:", erro);
       alert("Não foi possível excluir o anúncio.");
@@ -166,7 +242,8 @@ function PainelAdmin() {
           })
         );
       }
-      await carregarAnuncios();
+      // refetch do zero para manter total/hasMore corretos
+      await carregarPagina(1, false);
     } catch (erro) {
       console.error("Erro ao excluir anunciante:", erro);
       alert("Não foi possível excluir os anúncios desse anunciante.");
@@ -193,132 +270,155 @@ function PainelAdmin() {
       ) : anunciantes.length === 0 ? (
         <p style={styles.muted}>Nenhum anúncio encontrado.</p>
       ) : (
-        anunciantes.map((anunciante) => (
-          <section key={anunciante.id} style={styles.card}>
-            <div style={styles.cardHeader}>
-              <div>
-                <h2 style={styles.h2}>{anunciante.nome}</h2>
-                <div style={styles.meta}>
-                  <span>📧 {anunciante.email}</span>
-                  <span>📱 {anunciante.telefone}</span>
-                  <span>📍 {anunciante.cidade} - {anunciante.estado}</span>
-                  <span>🗓 {anunciante.dataCadastro}</span>
-                </div>
-              </div>
-              <button onClick={() => excluirAnunciante(anunciante.id)} style={styles.btnDangerSm}>
-                Excluir anunciante
-              </button>
-            </div>
-
-            <div style={styles.grid}>
-              {anunciante.anuncios.map((anuncio) => {
-                const id = anuncio._id;
-                const capa = buildCapa(anuncio);
-                const fotosTotal = Array.isArray(fotosMap[id])
-                  ? fotosMap[id].length
-                  : (typeof anuncio.imagensCount === "number"
-                      ? anuncio.imagensCount
-                      : Array.isArray(anuncio.imagens) ? anuncio.imagens.length : 0);
-
-                const aberto = !!abertas[id];
-
-                return (
-                  <div key={id} style={styles.item}>
-                    <img
-                      src={capa}
-                      alt="Capa"
-                      width={120}
-                      height={90}
-                      style={styles.thumb}
-                      loading="lazy"
-                      decoding="async"
-                      onError={(e) => { if (e?.target?.src !== logo) e.target.src = logo; }}
-                    />
-                    <div style={styles.itemInfo}>
-                      <div style={styles.titleRow}>
-                        <strong>{anuncio.modeloCarroceria || anuncio.tipoModelo || "-"}</strong>
-                        <span style={styles.badge}>{anuncio.status}</span>
-                      </div>
-                      <div style={styles.row}>
-                        <span>{formatarValor(anuncio.valor)}</span>
-                        <button
-                          style={styles.btnLight}
-                          onClick={() => toggleFotos(anuncio)}
-                          title={aberto ? "Ocultar fotos" : "Ver fotos"}
-                        >
-                          {aberto ? "Ocultar fotos" : `Ver fotos (${fotosTotal || 0})`}
-                        </button>
-                      </div>
-
-                      {/* ↓↓↓ NOVO: galeria embutida */}
-                      {aberto && (
-                        <div style={{ marginTop: 10 }}>
-                          {loadingFotos[id] ? (
-                            <div style={styles.muted}>Carregando fotos…</div>
-                          ) : (fotosMap[id] && fotosMap[id].length > 0) ? (
-                            <div style={styles.gridFotos}>
-                              {fotosMap[id].map((url, idx) => (
-                                <img
-                                  key={idx}
-                                  src={url}
-                                  alt={`foto ${idx + 1}`}
-                                  style={styles.foto}
-                                  loading="lazy"
-                                  decoding="async"
-                                  onError={(e) => { if (e?.target?.src !== logo) e.target.src = logo; }}
-                                />
-                              ))}
-                            </div>
-                          ) : (
-                            <div style={styles.muted}>Sem fotos para este anúncio.</div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Ações */}
-                      {anuncio.status === "pendente" || anuncio.status === "aguardando pagamento" ? (
-                        <div style={styles.actions}>
-                          <button onClick={() => atualizarStatusAnuncio(id, "aprovado")} style={styles.btnOk}>
-                            Aprovar
-                          </button>
-                          <button onClick={() => atualizarStatusAnuncio(id, "rejeitado")} style={styles.btnWarn}>
-                            Rejeitar
-                          </button>
-                          <button onClick={() => excluirAnuncio(id)} style={styles.btnDanger}>
-                            Excluir
-                          </button>
-                        </div>
-                      ) : anuncio.status === "aguardando venda" ? (
-                        <div style={styles.actions}>
-                          <span style={styles.badgeWarn}>🚧 Aguardando Confirmação</span>
-                          <button onClick={() => atualizarStatusAnuncio(id, "vendido")} style={styles.btnWarn}>
-                            Confirmar venda
-                          </button>
-                          <button onClick={() => excluirAnuncio(id)} style={styles.btnDanger}>
-                            Excluir
-                          </button>
-                        </div>
-                      ) : (
-                        <div style={styles.actions}>
-                          {anuncio.status === "aprovado" ? (
-                            <span style={styles.badgeOk}>✅ Aprovado</span>
-                          ) : anuncio.status === "vendido" ? (
-                            <span style={styles.badgeInfo}>✔️ Vendido</span>
-                          ) : (
-                            <span style={styles.badgeDanger}>❌ Rejeitado</span>
-                          )}
-                          <button onClick={() => excluirAnuncio(id)} style={styles.btnDanger}>
-                            Excluir
-                          </button>
-                        </div>
-                      )}
-                    </div>
+        <>
+          {anunciantes.map((anunciante) => (
+            <section key={anunciante.id} style={styles.card}>
+              <div style={styles.cardHeader}>
+                <div>
+                  <h2 style={styles.h2}>{anunciante.nome}</h2>
+                  <div style={styles.meta}>
+                    <span>📧 {anunciante.email}</span>
+                    <span>📱 {anunciante.telefone}</span>
+                    <span>📍 {anunciante.cidade} - {anunciante.estado}</span>
+                    <span>🗓 {anunciante.dataCadastro}</span>
                   </div>
-                );
-              })}
-            </div>
-          </section>
-        ))
+                </div>
+                <button onClick={() => excluirAnunciante(anunciante.id)} style={styles.btnDangerSm}>
+                  Excluir anunciante
+                </button>
+              </div>
+
+              <div style={styles.grid}>
+                {anunciante.anuncios.map((anuncio) => {
+                  const id = anuncio._id || anuncio.id;
+                  const capa = buildCapa(anuncio);
+                  const fotosTotal = Array.isArray(fotosMap[id])
+                    ? fotosMap[id].length
+                    : (typeof anuncio.imagensCount === "number"
+                        ? anuncio.imagensCount
+                        : Array.isArray(anuncio.imagens) ? anuncio.imagens.length : 0);
+
+                  const aberto = !!abertas[id];
+
+                  return (
+                    <div key={id} style={styles.item}>
+                      <img
+                        src={capa}
+                        alt="Capa"
+                        width={120}
+                        height={90}
+                        style={styles.thumb}
+                        loading="lazy"
+                        decoding="async"
+                        onError={(e) => { if (e?.target?.src !== logo) e.target.src = logo; }}
+                      />
+                      <div style={styles.itemInfo}>
+                        <div style={styles.titleRow}>
+                          <strong>{anuncio.modeloCarroceria || anuncio.tipoModelo || "-"}</strong>
+                          <span style={styles.badge}>{anuncio.status}</span>
+                        </div>
+                        <div style={styles.row}>
+                          <span>{formatarValor(anuncio.valor)}</span>
+                          <button
+                            style={styles.btnLight}
+                            onClick={() => toggleFotos(anuncio)}
+                            title={aberto ? "Ocultar fotos" : "Ver fotos"}
+                          >
+                            {aberto ? "Ocultar fotos" : `Ver fotos (${fotosTotal || 0})`}
+                          </button>
+                        </div>
+
+                        {/* galeria embutida */}
+                        {aberto && (
+                          <div style={{ marginTop: 10 }}>
+                            {loadingFotos[id] ? (
+                              <div style={styles.muted}>Carregando fotos…</div>
+                            ) : (fotosMap[id] && fotosMap[id].length > 0) ? (
+                              <div style={styles.gridFotos}>
+                                {fotosMap[id].map((url, idx) => (
+                                  <img
+                                    key={idx}
+                                    src={url}
+                                    alt={`foto ${idx + 1}`}
+                                    style={styles.foto}
+                                    loading="lazy"
+                                    decoding="async"
+                                    onError={(e) => { if (e?.target?.src !== logo) e.target.src = logo; }}
+                                  />
+                                ))}
+                              </div>
+                            ) : (
+                              <div style={styles.muted}>Sem fotos para este anúncio.</div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Ações */}
+                        {anuncio.status === "pendente" || anuncio.status === "aguardando pagamento" ? (
+                          <div style={styles.actions}>
+                            <button onClick={() => atualizarStatusAnuncio(id, "aprovado")} style={styles.btnOk}>
+                              Aprovar
+                            </button>
+                            <button onClick={() => atualizarStatusAnuncio(id, "rejeitado")} style={styles.btnWarn}>
+                              Rejeitar
+                            </button>
+                            <button onClick={() => excluirAnuncio(id)} style={styles.btnDanger}>
+                              Excluir
+                            </button>
+                          </div>
+                        ) : anuncio.status === "aguardando venda" ? (
+                          <div style={styles.actions}>
+                            <span style={styles.badgeWarn}>🚧 Aguardando Confirmação</span>
+                            <button onClick={() => atualizarStatusAnuncio(id, "vendido")} style={styles.btnWarn}>
+                              Confirmar venda
+                            </button>
+                            <button onClick={() => excluirAnuncio(id)} style={styles.btnDanger}>
+                              Excluir
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={styles.actions}>
+                            {anuncio.status === "aprovado" ? (
+                              <span style={styles.badgeOk}>✅ Aprovado</span>
+                            ) : anuncio.status === "vendido" ? (
+                              <span style={styles.badgeInfo}>✔️ Vendido</span>
+                            ) : (
+                              <span style={styles.badgeDanger}>❌ Rejeitado</span>
+                            )}
+                            <button onClick={() => excluirAnuncio(id)} style={styles.btnDanger}>
+                              Excluir
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+
+          {/* Paginação: Carregar Mais */}
+          <div style={{ display: "flex", justifyContent: "center", margin: "16px 0" }}>
+            {hasMore ? (
+              <button
+                onClick={handleCarregarMais}
+                disabled={carregandoMais}
+                style={{
+                  background: "#fff",
+                  border: "1px solid #ddd",
+                  padding: "10px 16px",
+                  borderRadius: 8,
+                  cursor: carregandoMais ? "wait" : "pointer",
+                }}
+              >
+                {carregandoMais ? "Carregando…" : "Carregar mais"}
+              </button>
+            ) : (
+              <span style={{ opacity: 0.8 }}>Todos os anúncios foram carregados.</span>
+            )}
+          </div>
+        </>
       )}
     </div>
   );
@@ -353,7 +453,7 @@ const styles = {
   btnDangerSm: { background: "#dc3545", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" },
   btnLight: { background: "#fff", border: "1px solid #ddd", padding: "6px 10px", borderRadius: 6, cursor: "pointer" },
 
-  // ↓↓↓ NOVOS estilos da galeria
+  // galeria
   gridFotos: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
