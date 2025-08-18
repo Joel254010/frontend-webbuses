@@ -1,4 +1,6 @@
 // ✅ Home.jsx – usa mesma lógica do Admin (fotoCapaThumb → fotoCapaUrl → capaUrl)
+// + "KM" antes da quilometragem quando apropriado
+// + Ordenação: createdAt desc (tie-breaker: updatedAt desc)
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Home.css";
@@ -97,6 +99,48 @@ function getKmLabelFromAnuncio(a) {
     a.quilometragemAtual
   );
 }
+
+/** 👉 Exibir “KM ” apenas quando fizer sentido:
+ * - se já tem “km”, mantém como está (só padroniza para “KM”)
+ * - se tiver número mas não tem “km”, prefixa “KM ”
+ * - se for vazio, cai no “Não informado”
+ */
+function normalizeKmLabel(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return "Não informado";
+  const lower = s.toLowerCase();
+  const hasKmWord = /\bkm\b/.test(lower);
+  const hasDigit = /\d/.test(s);
+  if (hasKmWord) return s.replace(/\bkm\b/gi, "KM");
+  if (hasDigit) return `KM ${s}`;
+  return s;
+}
+
+/* ===== Datas para ordenação ===== */
+function parseTimeSafe(v) {
+  // tenta várias chaves comuns
+  const d =
+    Date.parse(v?.createdAt || v?.dataCriacao || v?.created_at || v?._createdAt || v?.meta?.createdAt) ||
+    Date.parse(v) ||
+    0;
+  return Number.isFinite(d) ? d : 0;
+}
+function pickCreatedAt(anuncio) {
+  return (
+    Date.parse(anuncio?.createdAt) ||
+    Date.parse(anuncio?.dataCriacao) ||
+    Date.parse(anuncio?.created_at) ||
+    0
+  );
+}
+function pickUpdatedAt(anuncio) {
+  return (
+    Date.parse(anuncio?.updatedAt) ||
+    Date.parse(anuncio?.dataAtualizacao) ||
+    Date.parse(anuncio?.updated_at) ||
+    0
+  );
+}
 /* =============================================================== */
 
 function Home() {
@@ -125,15 +169,26 @@ function Home() {
 
         const bruto = Array.isArray(dados) ? dados : Array.isArray(dados?.anuncios) ? dados.anuncios : [];
 
+        // normaliza + enriquece com datas para ordenação
         const normalizados = bruto
-          .map((a) => ({
-            ...a,
-            capaUrl: getCapa(a),
-            slugModelo: a.slugModelo ?? slugModeloFromTipo(a.tipoModelo || ""),
-            _valorNumber: parseValorBRL(a.valor),
-            _kmLabel: getKmLabelFromAnuncio(a), // 👈 texto livre
-          }))
-          .filter((a) => a?.status === "aprovado");
+          .map((a) => {
+            const _createdAt = pickCreatedAt(a) || 0;
+            const _updatedAt = pickUpdatedAt(a) || 0;
+            return {
+              ...a,
+              capaUrl: getCapa(a),
+              slugModelo: a.slugModelo ?? slugModeloFromTipo(a.tipoModelo || ""),
+              _valorNumber: parseValorBRL(a.valor),
+              _kmLabel: getKmLabelFromAnuncio(a), // 👈 texto livre
+              _createdAt,
+              _updatedAt,
+            };
+          })
+          .filter((a) => a?.status === "aprovado")
+          // 🔥 Ordenação: NOVOS primeiro
+          // 1) createdAt desc
+          // 2) (empate) updatedAt desc
+          .sort((b, a) => (a._createdAt - b._createdAt) || (a._updatedAt - b._updatedAt));
 
         setTodosAnuncios(normalizados);
         setAnuncios(normalizados);
@@ -141,6 +196,8 @@ function Home() {
         console.table(
           normalizados.slice(0, 8).map((x) => ({
             id: x._id,
+            createdAt: x._createdAt,
+            updatedAt: x._updatedAt,
             capaUsada: x.capaUrl || "(vazio)",
             kmLabel: x._kmLabel ?? "(sem km na lista)",
           }))
@@ -183,6 +240,7 @@ function Home() {
           if (!label) continue;
           if (cancelado) break;
 
+          // ⚠️ Mantém a ordem atual, só atualiza o item
           setTodosAnuncios((prev) =>
             prev.map((x) => (x._id === a._id ? { ...x, _kmLabel: label } : x))
           );
@@ -195,6 +253,7 @@ function Home() {
     };
   }, [todosAnuncios, paginaAtual, anunciosPorPagina]);
 
+  // filtros e busca aplicados sobre a base já ordenada
   useEffect(() => {
     let filtrados = [...todosAnuncios];
     if (filtroModelo) filtrados = filtrados.filter((anuncio) => anuncio.slugModelo === filtroModelo);
@@ -339,6 +398,7 @@ function Home() {
             !erro &&
             anunciosExibidos.map((anuncio) => {
               const capa = anuncio.capaUrl || "";
+              const kmText = normalizeKmLabel(anuncio._kmLabel);
               return (
                 <div className="card-anuncio" key={anuncio._id}>
                   {capa && (
@@ -363,7 +423,7 @@ function Home() {
                         currency: "BRL",
                       })}
                     </p>
-                    <span>{anuncio._kmLabel || "Não informado"}</span>
+                    <span>{kmText}</span>
                     <br />
                     <span>
                       {anuncio.localizacao?.cidade} - {anuncio.localizacao?.estado}
