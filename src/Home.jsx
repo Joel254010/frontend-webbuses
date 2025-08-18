@@ -117,14 +117,6 @@ function normalizeKmLabel(raw) {
 }
 
 /* ===== Datas para ordenação ===== */
-function parseTimeSafe(v) {
-  // tenta várias chaves comuns
-  const d =
-    Date.parse(v?.createdAt || v?.dataCriacao || v?.created_at || v?._createdAt || v?.meta?.createdAt) ||
-    Date.parse(v) ||
-    0;
-  return Number.isFinite(d) ? d : 0;
-}
 function pickCreatedAt(anuncio) {
   return (
     Date.parse(anuncio?.createdAt) ||
