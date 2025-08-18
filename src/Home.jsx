@@ -1,6 +1,6 @@
 // ✅ Home.jsx – usa mesma lógica do Admin (fotoCapaThumb → fotoCapaUrl → capaUrl)
 // + "KM" antes da quilometragem quando apropriado
-// + Ordenação: createdAt desc (tie-breaker: updatedAt desc)
+// + Ordenação: createdAt desc (tie-breaker: updatedAt desc) com fallback no _id do Mongo
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Home.css";
@@ -89,7 +89,6 @@ function firstNonEmpty(...vals) {
   return undefined;
 }
 function getKmLabelFromAnuncio(a) {
-  // pega a primeira variação que vier preenchida
   return firstNonEmpty(
     a.kilometragem,
     a.kilometragemAtual,
@@ -100,11 +99,7 @@ function getKmLabelFromAnuncio(a) {
   );
 }
 
-/** 👉 Exibir “KM ” apenas quando fizer sentido:
- * - se já tem “km”, mantém como está (só padroniza para “KM”)
- * - se tiver número mas não tem “km”, prefixa “KM ”
- * - se for vazio, cai no “Não informado”
- */
+/** 👉 Exibir “KM ” apenas quando fizer sentido */
 function normalizeKmLabel(raw) {
   const s = String(raw || "").trim();
   if (!s) return "Não informado";
@@ -117,11 +112,27 @@ function normalizeKmLabel(raw) {
 }
 
 /* ===== Datas para ordenação ===== */
+function mongoIdToTime(id) {
+  // Converte ObjectId(24 hex) em timestamp (ms). 4 primeiros bytes = segundos desde epoch.
+  if (typeof id !== "string") return 0;
+  const m = id.match(/^[a-f0-9]{24}$/i);
+  if (!m) return 0;
+  try {
+    const seconds = parseInt(id.substring(0, 8), 16);
+    return seconds * 1000;
+  } catch {
+    return 0;
+  }
+}
 function pickCreatedAt(anuncio) {
+  // tenta campos comuns; se não vier, usa o _id como fonte de verdade
   return (
     Date.parse(anuncio?.createdAt) ||
     Date.parse(anuncio?.dataCriacao) ||
     Date.parse(anuncio?.created_at) ||
+    Date.parse(anuncio?.publicadoEm) ||
+    Date.parse(anuncio?.dataPublicacao) ||
+    mongoIdToTime(anuncio?._id) ||
     0
   );
 }
@@ -161,25 +172,22 @@ function Home() {
 
         const bruto = Array.isArray(dados) ? dados : Array.isArray(dados?.anuncios) ? dados.anuncios : [];
 
-        // normaliza + enriquece com datas para ordenação
         const normalizados = bruto
           .map((a) => {
-            const _createdAt = pickCreatedAt(a) || 0;
+            const _createdAt = pickCreatedAt(a) || 0; // fallback no _id
             const _updatedAt = pickUpdatedAt(a) || 0;
             return {
               ...a,
               capaUrl: getCapa(a),
               slugModelo: a.slugModelo ?? slugModeloFromTipo(a.tipoModelo || ""),
               _valorNumber: parseValorBRL(a.valor),
-              _kmLabel: getKmLabelFromAnuncio(a), // 👈 texto livre
+              _kmLabel: getKmLabelFromAnuncio(a),
               _createdAt,
               _updatedAt,
             };
           })
           .filter((a) => a?.status === "aprovado")
-          // 🔥 Ordenação: NOVOS primeiro
-          // 1) createdAt desc
-          // 2) (empate) updatedAt desc
+          // NOVOS primeiro (createdAt desc); empate: updatedAt desc
           .sort((b, a) => (a._createdAt - b._createdAt) || (a._updatedAt - b._updatedAt));
 
         setTodosAnuncios(normalizados);
@@ -206,7 +214,7 @@ function Home() {
     buscarAnuncios();
   }, []);
 
-  // [KM] fallback: se a listagem não trouxe KM, buscar do /anuncios/:id/meta para os cards visíveis (preservando texto cru)
+  // [KM] fallback: busca /anuncios/:id/meta para os cards visíveis (preserva texto cru)
   useEffect(() => {
     if (!todosAnuncios.length) return;
 
@@ -232,7 +240,6 @@ function Home() {
           if (!label) continue;
           if (cancelado) break;
 
-          // ⚠️ Mantém a ordem atual, só atualiza o item
           setTodosAnuncios((prev) =>
             prev.map((x) => (x._id === a._id ? { ...x, _kmLabel: label } : x))
           );
@@ -260,7 +267,7 @@ function Home() {
           anuncio.fabricanteChassis,
           anuncio?.localizacao?.cidade,
           anuncio?.localizacao?.estado,
-          anuncio?._kmLabel, // permite buscar por "não informado" etc.
+          anuncio?._kmLabel,
         ]
           .filter(Boolean)
           .join(" ");
@@ -474,3 +481,4 @@ function Home() {
 }
 
 export default Home;
+
