@@ -583,3 +583,39 @@ body {
     font-size: 14px;
   }
 }
+
+/* — Fix: impede que estilos de button 100% vazem para fora — */
+.home-header .botao-anunciar {
+  width: auto !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto; /* não estica no flex-wrap do header */
+}
+
+/* Paginação compacta */
+.paginacao {
+  display: flex;
+  justify-content: center;
+  margin: 30px auto 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+  max-width: 720px;
+}
+.paginacao button {
+  width: auto !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+/* Botões de compartilhamento/ações também ficam auto */
+.menu-compartilhar button,
+.botao-saiba-mais,
+.botao-curtir,
+.botao-compartilhar {
+  width: auto !important;
+}
