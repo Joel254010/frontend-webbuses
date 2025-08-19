@@ -1,0 +1,103 @@
+.leadbox {
+  background: #0b1021;
+  border: 2px solid #88fe03;
+  border-radius: 16px;
+  padding: 20px;
+  margin: 20px 0;
+  color: #fff;
+}
+
+.leadbox h2 {
+  text-align: center;
+  margin-bottom: 16px;
+  font-size: 20px;
+}
+.leadbox h2 span {
+  color: #88fe03;
+}
+
+.field {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+.field label {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.field input,
+.field textarea {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background: #fff;
+  color: #000;
+}
+
+.menu-label {
+  cursor: pointer;
+  background: #222;
+  padding: 10px;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.submenu {
+  list-style: none;
+  padding: 0;
+  margin-top: 6px;
+  border: 1px solid #88fe03;
+  border-radius: 8px;
+  background: #1a1a1a;
+}
+.submenu li {
+  padding: 10px;
+  cursor: pointer;
+}
+.submenu li:hover {
+  background: #333;
+}
+.submenu li.ativo {
+  background: #88fe03;
+  color: #000;
+}
+
+.subescolhida {
+  margin-top: 6px;
+  font-size: 14px;
+  color: #88fe03;
+}
+
+button {
+  background: #88fe03;
+  color: #000;
+  font-weight: bold;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+}
+button:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
+
+.alert {
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+.alert.ok {
+  background: #103216;
+  color: #b9ffc9;
+}
+.alert.erro {
+  background: #311010;
+  color: #ffb9b9;
+}
+
+.leadbox {
+  margin: 40px auto;
+  max-width: 800px;
+}

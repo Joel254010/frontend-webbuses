@@ -10,6 +10,9 @@ import banner2 from "./assets/banner2.png";
 import banner3 from "./assets/banner3.png";
 import { API_URL, API_BASE } from "./config";
 
+// 👇 IMPORT DO LEADBOX
+import LeadBox from "./components/LeadBox/LeadBox";
+
 /* Utils */
 function removerAcentos(str) {
   return String(str || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -470,6 +473,11 @@ function Home() {
             ))}
           </div>
         )}
+
+        {/* 👇 AQUI: LEADBOX ENTRE PAGINAÇÃO E RODAPÉ */}
+        <div style={{ maxWidth: 920, margin: "32px auto 24px" }}>
+          <LeadBox />
+        </div>
       </main>
 
       <footer className="home-footer">
@@ -481,4 +489,3 @@ function Home() {
 }
 
 export default Home;
-

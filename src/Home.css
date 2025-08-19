@@ -458,3 +458,128 @@ body {
     font-size: 13px;
   }
 }
+
+/* ==================== LEADBOX ==================== */
+.leadbox {
+  background: #0b1021;
+  border: 2px solid #88fe03;
+  border-radius: 16px;
+  padding: 20px;
+  margin: 40px auto;
+  max-width: 800px;
+  color: #fff;
+}
+
+.leadbox h2 {
+  text-align: center;
+  margin-bottom: 16px;
+  font-size: 20px;
+}
+.leadbox h2 span {
+  color: #88fe03;
+}
+
+.leadbox .field {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+.leadbox .field label {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.leadbox .field input,
+.leadbox .field textarea {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background: #fff;
+  color: #000;
+  font-size: 14px;
+}
+
+.leadbox .menu-label {
+  cursor: pointer;
+  background: #222;
+  padding: 10px;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.leadbox .submenu {
+  list-style: none;
+  padding: 0;
+  margin-top: 6px;
+  border: 1px solid #88fe03;
+  border-radius: 8px;
+  background: #1a1a1a;
+}
+.leadbox .submenu li {
+  padding: 10px;
+  cursor: pointer;
+}
+.leadbox .submenu li:hover {
+  background: #333;
+}
+.leadbox .submenu li.ativo {
+  background: #88fe03;
+  color: #000;
+}
+
+.leadbox .subescolhida {
+  margin-top: 6px;
+  font-size: 14px;
+  color: #88fe03;
+}
+
+.leadbox button {
+  background: #88fe03;
+  color: #000;
+  font-weight: bold;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.3s ease;
+}
+.leadbox button:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
+.leadbox button:hover:not(:disabled) {
+  background: #6edb00;
+}
+
+.leadbox .alert {
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+.leadbox .alert.ok {
+  background: #103216;
+  color: #b9ffc9;
+}
+.leadbox .alert.erro {
+  background: #311010;
+  color: #ffb9b9;
+}
+
+/* Responsivo LeadBox */
+@media (max-width: 768px) {
+  .leadbox {
+    margin: 20px 10px;
+    padding: 16px;
+  }
+  .leadbox h2 {
+    font-size: 18px;
+  }
+  .leadbox .field input,
+  .leadbox .field textarea {
+    font-size: 13px;
+  }
+  .leadbox button {
+    font-size: 14px;
+  }
+}
