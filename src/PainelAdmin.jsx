@@ -162,7 +162,7 @@ function PainelAdmin() {
       else setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [limit, ADMIN_ENDPOINT, agrupar]);
+  }, [limit, /* ADMIN_ENDPOINT é constante */, agrupar]);
 
   // primeira carga (anúncios)
   useEffect(() => {
@@ -294,11 +294,12 @@ function PainelAdmin() {
     } finally {
       setLeadsLoading(false);
     }
-  }, [API, leadsLimit]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [/* API é constante */, leadsLimit]);
 
   useEffect(() => {
     carregarLeads(1, leadsLimit);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const leadsFiltrados = useMemo(() => {
@@ -650,4 +651,5 @@ const styles = {
 };
 
 export default PainelAdmin;
+
 
