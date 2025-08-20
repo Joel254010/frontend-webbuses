@@ -3,33 +3,15 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import logo from "./assets/logo-webbuses.png";
 import { API, ADMIN_ENDPOINT } from "./config";
 
-const UF_LIST = [
-  "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
-  "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"
-];
-
-const INTERESSES = [
-  "Comprar para renovar minha frota",
-  "Vender para renovar minha frota",
-  "Financiamento",
-  "Consórcio Carta Contemplada",
-  "Consórcio Carta Programada",
-  "Compra de Peças",
-  "Socorro Ônibus Quebrado"
-];
-
 function PainelAdmin() {
-  // 🔢 paginação (anúncios)
+  // ========= ANÚNCIOS: paginação/estado =========
   const [page, setPage] = useState(1);
   const [limit] = useState(50);
   const [total, setTotal] = useState(null);
   const [lastCount, setLastCount] = useState(0);
 
-  // lista crua acumulada
-  const [itens, setItens] = useState([]);
-
-  // agrupado por anunciante (UI)
-  const [anunciantes, setAnunciantes] = useState([]);
+  const [itens, setItens] = useState([]);         // lista crua (acumulada)
+  const [anunciantes, setAnunciantes] = useState([]); // agrupado p/ UI
 
   const [loading, setLoading] = useState(true);
   const [carregandoMais, setCarregandoMais] = useState(false);
@@ -39,10 +21,7 @@ function PainelAdmin() {
   const [fotosMap, setFotosMap] = useState({}); // { [id]: string[] }
   const [loadingFotos, setLoadingFotos] = useState({}); // { [id]: boolean }
 
-  // erro do alias /admin (exibimos banner e aplicamos fallback)
-  const [adminError, setAdminError] = useState("");
-
-  // =========== LEADS ===========
+  // ========= LEADS: estado =========
   const [leads, setLeads] = useState([]);
   const [leadsPage, setLeadsPage] = useState(1);
   const [leadsLimit, setLeadsLimit] = useState(20);
@@ -52,6 +31,30 @@ function PainelAdmin() {
   const [qLead, setQLead] = useState("");
   const [ufLead, setUfLead] = useState("");
   const [interesseLead, setInteresseLead] = useState("");
+
+  const INTERESSES = [
+    "Comprar para renovar minha frota",
+    "Vender para renovar minha frota",
+    "Financiamento",
+    "Consórcio Carta Contemplada",
+    "Consórcio Carta Programada",
+    "Compra de Peças",
+    "Socorro Ônibus Quebrado"
+  ];
+
+  // ========= HELPERS =========
+  const formatarValor = (v) => {
+    if (typeof v === "number" && !Number.isNaN(v)) {
+      try {
+        return new Intl.NumberFormat("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+          maximumFractionDigits: 0
+        }).format(v);
+      } catch {}
+    }
+    return v ?? "-";
+  };
 
   const toBRDate = (iso) => {
     try { return new Date(iso).toLocaleString("pt-BR"); } catch { return "-"; }
@@ -64,18 +67,6 @@ function PainelAdmin() {
     return [headers.join(";"), ...rows.map(r => headers.map(h => esc(r[h])).join(";"))].join("\n");
   };
 
-  // ========= ANÚNCIOS =========
-  const formatarValor = (v) => {
-    if (typeof v === "number" && !Number.isNaN(v)) {
-      try {
-        return new Intl.NumberFormat("pt-BR", {
-          style: "currency", currency: "BRL", maximumFractionDigits: 0,
-        }).format(v);
-      } catch {}
-    }
-    return v ?? "-";
-  };
-
   const buildCapa = useCallback((anuncio) => {
     if (anuncio?.fotoCapaThumb) return anuncio.fotoCapaThumb;
     if (anuncio?.fotoCapaUrl)   return anuncio.fotoCapaUrl;
@@ -83,6 +74,7 @@ function PainelAdmin() {
     return logo;
   }, []);
 
+  // agrupa anúncios acumulados por anunciante (telefone/email/nome…)
   const agrupar = useCallback((lista) => {
     const agrupados = {};
     for (const anuncio of lista) {
@@ -105,7 +97,7 @@ function PainelAdmin() {
           cidade: anuncio.localizacao?.cidade || "-",
           estado: anuncio.localizacao?.estado || "-",
           dataCadastro: anuncio.dataCadastro || new Date().toLocaleDateString("pt-BR"),
-          anuncios: [],
+          anuncios: []
         };
       }
       agrupados[chave].anuncios.push(anuncio);
@@ -113,39 +105,17 @@ function PainelAdmin() {
     return Object.values(agrupados);
   }, []);
 
-  // Carregar página (com fallback /api/anuncios)
+  // ========= CARREGAR ANÚNCIOS (com merge seguro no setState) =========
   const carregarPagina = useCallback(async (pageToLoad = 1, append = false) => {
     if (append) setCarregandoMais(true); else setLoading(true);
-    setAdminError("");
-
-    const params = new URLSearchParams({ page: String(pageToLoad), limit: String(limit) });
-
-    const aplicarLista = (novaLista, totalServer = null) => {
-      let atualizados = [];
-      setItens((prev) => {
-        const map = new Map(prev.map((x) => [(x._id || x.id), x]));
-        for (const item of novaLista) {
-          map.set(item._id || item.id, item);
-        }
-        atualizados = Array.from(map.values());
-        return atualizados;
-      });
-      setAnunciantes(agrupar(atualizados));
-      setLastCount(novaLista.length);
-      if (totalServer !== null && Number.isFinite(totalServer)) setTotal(totalServer);
-      setPage(pageToLoad);
-    };
 
     try {
-      // 1) Tenta alias /admin (leve, feito pro painel)
+      const params = new URLSearchParams({ page: String(pageToLoad), limit: String(limit) });
       const r = await fetch(`${ADMIN_ENDPOINT}?${params.toString()}`, {
         headers: { Accept: "application/json" },
-        cache: "no-store",
+        cache: "no-store"
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-
-      const totalHeader = r.headers.get("X-Total-Count");
-      let totalServer = totalHeader ? parseInt(totalHeader, 10) : null;
 
       const dados = await r.json();
       const novaLista = Array.isArray(dados?.data)
@@ -154,44 +124,39 @@ function PainelAdmin() {
         ? dados
         : [];
 
-      if (typeof dados?.total === "number" && !Number.isNaN(dados.total)) {
-        totalServer = dados.total;
-      }
+      const totalHeader = r.headers.get("X-Total-Count");
+      const totalServer = typeof dados?.total === "number"
+        ? dados.total
+        : (totalHeader ? parseInt(totalHeader, 10) : null);
 
-      aplicarLista(novaLista, totalServer);
-    } catch (errAdmin) {
-      // 2) Fallback: /api/anuncios
-      setAdminError(`Falha no alias /admin (${errAdmin.message}). Usando fallback /api/anuncios.`);
-      try {
-        const r2 = await fetch(`${API}/anuncios?${params.toString()}`, {
-          headers: { Accept: "application/json" },
-          cache: "no-store",
-        });
-        if (!r2.ok) throw new Error(`HTTP ${r2.status}`);
-        const dados2 = await r2.json();
-        const lista =
-          Array.isArray(dados2?.anuncios) ? dados2.anuncios :
-          (Array.isArray(dados2) ? dados2 : []);
+      setItens(prev => {
+        const base = append ? prev : [];
+        const map = new Map(base.map(x => [(x._id || x.id), x]));
+        for (const item of novaLista) map.set(item._id || item.id, item);
+        const next = Array.from(map.values());
 
-        const normalizados = lista.map((a) => ({
-          ...a,
-          capaUrl: a.fotoCapaThumb || a.fotoCapaUrl || a.capaUrl || "",
-        }));
+        // atualiza dependentes em sincronia
+        setAnunciantes(agrupar(next));
+        setLastCount(novaLista.length);
+        if (totalServer !== null && Number.isFinite(totalServer)) setTotal(totalServer);
+        setPage(pageToLoad);
 
-        aplicarLista(normalizados, null);
-      } catch (errFallback) {
-        console.error("Erro no fallback /api/anuncios:", errFallback);
-        if (!append) {
-          setItens([]); setAnunciantes([]); setTotal(0);
-        }
+        return next;
+      });
+    } catch (e) {
+      console.error("Erro ao buscar anúncios (admin):", e);
+      if (!append) {
+        setItens([]);
+        setAnunciantes([]);
+        setTotal(0);
       }
     } finally {
       if (append) setCarregandoMais(false); else setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [limit, agrupar]); // ADMIN_ENDPOINT e API são constantes importadas
+  }, [limit, agrupar]); // ADMIN_ENDPOINT é constante importada
 
-  // primeira carga
+  // primeira carga dos anúncios
   useEffect(() => {
     carregarPagina(1, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -204,6 +169,7 @@ function PainelAdmin() {
     carregarPagina(page + 1, true);
   };
 
+  // ========= Ações de anúncio =========
   const toggleFotos = async (anuncio) => {
     const id = anuncio._id || anuncio.id;
     if (!id) return;
@@ -218,7 +184,7 @@ function PainelAdmin() {
         setLoadingFotos((p) => ({ ...p, [id]: true }));
         const r = await fetch(`${API}/anuncios/${id}`, {
           headers: { Accept: "application/json" },
-          cache: "no-store",
+          cache: "no-store"
         });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const full = await r.json();
@@ -227,7 +193,6 @@ function PainelAdmin() {
         if (full.fotoCapaUrl && !fotos.includes(full.fotoCapaUrl)) {
           fotos = [full.fotoCapaUrl, ...fotos];
         }
-
         setFotosMap((p) => ({ ...p, [id]: fotos }));
       } catch (err) {
         console.error("Erro ao carregar fotos:", err);
@@ -245,7 +210,7 @@ function PainelAdmin() {
       const r = await fetch(`${API}/anuncios/${anuncioId}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ status: novoStatus }),
+        body: JSON.stringify({ status: novoStatus })
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       await carregarPagina(1, false);
@@ -299,13 +264,13 @@ function PainelAdmin() {
     window.location.href = "/login-admin";
   };
 
-  // =========== LEADS: carregar/paginar/filtrar/exportar ===========
+  // ========= LEADS: carregar/paginar/filtrar/exportar =========
   const carregarLeads = useCallback(async (p = 1, l = leadsLimit) => {
     setLeadsLoading(true);
     try {
       const r = await fetch(`${API}/leads?page=${p}&limit=${l}`, {
         headers: { Accept: "application/json" },
-        cache: "no-store",
+        cache: "no-store"
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
@@ -315,10 +280,12 @@ function PainelAdmin() {
       setLeadsLimit(Number(data.limit || l));
     } catch (e) {
       console.error("Erro ao buscar leads:", e);
-      setLeads([]); setLeadsTotal(0);
+      setLeads([]);
+      setLeadsTotal(0);
     } finally {
       setLeadsLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leadsLimit]); // API é constante importada
 
   useEffect(() => {
@@ -353,7 +320,7 @@ function PainelAdmin() {
       origem: l.origem || "-",
       utm_source: l?.utm?.utm_source || "",
       utm_medium: l?.utm?.utm_medium || "",
-      utm_campaign: l?.utm?.utm_campaign || "",
+      utm_campaign: l?.utm?.utm_campaign || ""
     }));
     const csv = toCSV(rows);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -367,6 +334,7 @@ function PainelAdmin() {
 
   const totalPaginasLeads = Math.max(1, Math.ceil(leadsTotal / leadsLimit));
 
+  // ========= RENDER =========
   return (
     <div style={styles.wrap}>
       <header style={styles.header}>
@@ -376,19 +344,6 @@ function PainelAdmin() {
       </header>
 
       <h1 style={styles.h1}>Painel do Administrador</h1>
-
-      {adminError ? (
-        <div style={{
-          background: "#fff7e6",
-          border: "1px solid #ffe1a6",
-          color: "#8a6d00",
-          padding: 8,
-          borderRadius: 8,
-          marginBottom: 12
-        }}>
-          {adminError}
-        </div>
-      ) : null}
 
       {/* ====== Caixa: ANÚNCIOS ====== */}
       {loading ? (
@@ -529,7 +484,13 @@ function PainelAdmin() {
               <button
                 onClick={handleCarregarMais}
                 disabled={carregandoMais}
-                style={{ background: "#fff", border: "1px solid #ddd", padding: "10px 16px", borderRadius: 8, cursor: carregandoMais ? "wait" : "pointer" }}
+                style={{
+                  background: "#fff",
+                  border: "1px solid #ddd",
+                  padding: "10px 16px",
+                  borderRadius: 8,
+                  cursor: carregandoMais ? "wait" : "pointer"
+                }}
               >
                 {carregandoMais ? "Carregando…" : "Carregar mais"}
               </button>
@@ -551,11 +512,22 @@ function PainelAdmin() {
               onChange={(e) => setQLead(e.target.value)}
               style={styles.inp}
             />
-            <select value={ufLead} onChange={(e) => setUfLead(e.target.value.toUpperCase())} style={styles.inp}>
+            <select
+              value={ufLead}
+              onChange={(e) => setUfLead(e.target.value.toUpperCase())}
+              style={styles.inp}
+            >
               <option value="">UF</option>
-              {UF_LIST.map((u) => <option key={u} value={u}>{u}</option>)}
+              {[
+                "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
+                "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"
+              ].map((u) => <option key={u} value={u}>{u}</option>)}
             </select>
-            <select value={interesseLead} onChange={(e) => setInteresseLead(e.target.value)} style={styles.inp}>
+            <select
+              value={interesseLead}
+              onChange={(e) => setInteresseLead(e.target.value)}
+              style={styles.inp}
+            >
               <option value="">Interesse</option>
               {INTERESSES.map((i) => <option key={i} value={i}>{i}</option>)}
             </select>
@@ -642,7 +614,7 @@ const styles = {
   h1: { fontSize: 22, margin: "16px 0" },
   h2: { margin: 0, fontSize: 18 },
   skeleton: { padding: 16, background: "#fff", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,.06)" },
-  muted: { opacity: .8, padding: 8 },
+  muted: { opacity: 0.8, padding: 8 },
   card: { background: "#fff", borderRadius: 10, padding: 12, marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,.06)" },
   cardHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 8 },
   meta: { display: "flex", gap: 12, flexWrap: "wrap", color: "#444", marginTop: 4, fontSize: 13 },
@@ -663,15 +635,19 @@ const styles = {
   btnDanger: { background: "#dc3545", color: "#fff", border: "none", padding: "8px 12px", borderRadius: 6, cursor: "pointer" },
   btnDangerSm: { background: "#dc3545", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" },
   btnLight: { background: "#fff", border: "1px solid #ddd", padding: "6px 10px", borderRadius: 6, cursor: "pointer" },
+
+  // galeria
   gridFotos: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 8 },
   foto: { width: "100%", height: 100, objectFit: "cover", borderRadius: 6, background: "#eaeaea" },
+
+  // leads
   leadActions: { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" },
   inp: { background: "#fff", border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", minWidth: 160 },
   tableWrap: { width: "100%", overflowX: "auto" },
   table: { width: "100%", borderCollapse: "collapse", minWidth: 780 },
   th: { textAlign: "left", padding: "10px", fontWeight: 700, background: "#f3f5f8", borderBottom: "1px solid #e6e9ef", fontSize: 14, whiteSpace: "nowrap" },
   td: { padding: "10px", borderBottom: "1px solid #eee", fontSize: 14, verticalAlign: "top" },
-  pager: { display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between", marginTop: 12, flexWrap: "wrap" },
+  pager: { display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between", marginTop: 12, flexWrap: "wrap" }
 };
 
 export default PainelAdmin;
