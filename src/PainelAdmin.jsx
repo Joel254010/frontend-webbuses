@@ -1,10 +1,10 @@
 // src/PainelAdmin.jsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import logo from "./assets/logo-webbuses.png";
 import { API, ADMIN_ENDPOINT } from "./config";
 
 function PainelAdmin() {
-  // 🔢 paginação
+  // 🔢 paginação (anúncios)
   const [page, setPage] = useState(1);
   const [limit] = useState(50); // ajuste se quiser
   const [total, setTotal] = useState(null); // X-Total-Count ou dados.total
@@ -24,6 +24,38 @@ function PainelAdmin() {
   const [fotosMap, setFotosMap] = useState({}); // { [id]: string[] }
   const [loadingFotos, setLoadingFotos] = useState({}); // { [id]: boolean }
 
+  // =========== LEADS (nova caixa) ===========
+  const [leads, setLeads] = useState([]);
+  const [leadsPage, setLeadsPage] = useState(1);
+  const [leadsLimit, setLeadsLimit] = useState(20);
+  const [leadsTotal, setLeadsTotal] = useState(0);
+  const [leadsLoading, setLeadsLoading] = useState(false);
+
+  const [qLead, setQLead] = useState("");
+  const [ufLead, setUfLead] = useState("");
+  const [interesseLead, setInteresseLead] = useState("");
+
+  const INTERESSES = [
+    "Comprar para renovar minha frota",
+    "Vender para renovar minha frota",
+    "Financiamento",
+    "Consórcio Carta Contemplada",
+    "Consórcio Carta Programada",
+    "Compra de Peças",
+    "Socorro Ônibus Quebrado",
+  ];
+
+  const toBRDate = (iso) => {
+    try { return new Date(iso).toLocaleString("pt-BR"); } catch { return "-"; }
+  };
+  const toCSV = (rows) => {
+    if (!rows?.length) return "";
+    const headers = Object.keys(rows[0]);
+    const esc = (v) => `"${String(v ?? "").replace(/"/g, '""').replace(/\n/g, " ").trim()}"`;
+    return [headers.join(";"), ...rows.map(r => headers.map(h => esc(r[h])).join(";"))].join("\n");
+  };
+
+  // ========= FUNÇÕES EXISTENTES (ANÚNCIOS) =========
   const formatarValor = (v) => {
     if (typeof v === "number" && !Number.isNaN(v)) {
       try {
@@ -44,7 +76,6 @@ function PainelAdmin() {
     return logo;
   }, []);
 
-  // 🔧 agrupa anúncios acumulados por anunciante (telefone/email/nome…)
   const agrupar = useCallback((lista) => {
     const agrupados = {};
     for (const anuncio of lista) {
@@ -75,9 +106,7 @@ function PainelAdmin() {
     return Object.values(agrupados);
   }, []);
 
-  // ⚡ carrega uma página (append = acumular)
   const carregarPagina = useCallback(async (pageToLoad = 1, append = false) => {
-    // loading states separados para UX
     if (append) setCarregandoMais(true);
     else setLoading(true);
 
@@ -94,7 +123,6 @@ function PainelAdmin() {
 
       const dados = await r.json();
 
-      // aceita { data: [] } OU [] direto; aceita { total } se existir
       const novaLista = Array.isArray(dados?.data)
         ? dados.data
         : Array.isArray(dados)
@@ -105,7 +133,6 @@ function PainelAdmin() {
         totalServer = dados.total;
       }
 
-      // evita duplicados (_id/id)
       let atualizados = [];
       setItens((prev) => {
         const map = new Map(prev.map((x) => [(x._id || x.id), x]));
@@ -116,16 +143,12 @@ function PainelAdmin() {
         return atualizados;
       });
 
-      // aplica agrupamento para UI
       setAnunciantes(agrupar(atualizados));
 
-      // metadados de paginação
       setLastCount(novaLista.length);
       if (totalServer !== null && Number.isFinite(totalServer)) {
         setTotal(totalServer);
       }
-
-      // atualiza o “page” atual para o que foi carregado
       setPage(pageToLoad);
     } catch (e) {
       console.error("Erro ao buscar anúncios (admin):", e);
@@ -141,7 +164,7 @@ function PainelAdmin() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [limit, ADMIN_ENDPOINT, agrupar]);
 
-  // primeira carga
+  // primeira carga (anúncios)
   useEffect(() => {
     carregarPagina(1, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -149,14 +172,13 @@ function PainelAdmin() {
 
   const hasMore = total !== null
     ? itens.length < total
-    : lastCount === limit; // fallback quando API não envia total
+    : lastCount === limit;
 
   const handleCarregarMais = () => {
     if (carregandoMais || loading) return;
     carregarPagina(page + 1, true);
   };
 
-  // ↓↓↓ abre/fecha e carrega fotos sob demanda
   const toggleFotos = async (anuncio) => {
     const id = anuncio._id || anuncio.id;
     if (!id) return;
@@ -201,9 +223,7 @@ function PainelAdmin() {
         body: JSON.stringify({ status: novoStatus }),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-
-      // recarrega a página atual mantendo os itens acumulados consistentes
-      await carregarPagina(1, false); // se preferir, recarregue só a página atual
+      await carregarPagina(1, false);
     } catch (erro) {
       console.error("Erro ao atualizar status:", erro);
       alert("Não foi possível atualizar o status.");
@@ -219,7 +239,6 @@ function PainelAdmin() {
         const e = await r.json().catch(() => ({}));
         throw new Error(e?.mensagem || e?.erro || `HTTP ${r.status}`);
       }
-      // remove localmente sem refetch total
       setItens((prev) => prev.filter((a) => (a._id || a.id) !== anuncioId));
       setAnunciantes((prev) =>
         agrupar(itens.filter((a) => (a._id || a.id) !== anuncioId))
@@ -242,7 +261,6 @@ function PainelAdmin() {
           })
         );
       }
-      // refetch do zero para manter total/hasMore corretos
       await carregarPagina(1, false);
     } catch (erro) {
       console.error("Erro ao excluir anunciante:", erro);
@@ -255,6 +273,75 @@ function PainelAdmin() {
     window.location.href = "/login-admin";
   };
 
+  // =========== LEADS: carregar/paginar/filtrar/exportar ===========
+  const carregarLeads = useCallback(async (p = 1, l = leadsLimit) => {
+    setLeadsLoading(true);
+    try {
+      const r = await fetch(`${API}/leads?page=${p}&limit=${l}`, {
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      setLeads(Array.isArray(data.itens) ? data.itens : []);
+      setLeadsTotal(Number(data.total || 0));
+      setLeadsPage(Number(data.page || p));
+      setLeadsLimit(Number(data.limit || l));
+    } catch (e) {
+      console.error("Erro ao buscar leads:", e);
+      setLeads([]);
+      setLeadsTotal(0);
+    } finally {
+      setLeadsLoading(false);
+    }
+  }, [API, leadsLimit]);
+
+  useEffect(() => {
+    carregarLeads(1, leadsLimit);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const leadsFiltrados = useMemo(() => {
+    let base = [...leads];
+    if (qLead) {
+      const alvo = qLead.toLowerCase();
+      base = base.filter((l) =>
+        [
+          l.nome, l.email, l.telefone, l.detalhes, l.cidade, l.estado, l.interesse, l.origem
+        ].filter(Boolean).join(" ").toLowerCase().includes(alvo)
+      );
+    }
+    if (ufLead) base = base.filter((l) => (l.estado || "").toUpperCase() === ufLead);
+    if (interesseLead) base = base.filter((l) => (l.interesse || "") === interesseLead);
+    return base;
+  }, [leads, qLead, ufLead, interesseLead]);
+
+  const baixarCSV = () => {
+    const rows = leadsFiltrados.map((l) => ({
+      data: toBRDate(l.createdAt),
+      nome: l.nome || "-",
+      email: l.email || "-",
+      telefone: l.telefone ? `+55 ${l.telefone}` : "-",
+      interesse: l.interesse || "-",
+      uf: (l.estado || "").toUpperCase(),
+      cidade: l.cidade || "-",
+      origem: l.origem || "-",
+      utm_source: l?.utm?.utm_source || "",
+      utm_medium: l?.utm?.utm_medium || "",
+      utm_campaign: l?.utm?.utm_campaign || "",
+    }));
+    const csv = toCSV(rows);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `leads-webbuses-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const totalPaginasLeads = Math.max(1, Math.ceil(leadsTotal / leadsLimit));
+
   return (
     <div style={styles.wrap}>
       <header style={styles.header}>
@@ -265,6 +352,7 @@ function PainelAdmin() {
 
       <h1 style={styles.h1}>Painel do Administrador</h1>
 
+      {/* ====== Caixa: ANÚNCIOS (como já estava) ====== */}
       {loading ? (
         <div style={styles.skeleton}>Carregando…</div>
       ) : anunciantes.length === 0 ? (
@@ -328,7 +416,6 @@ function PainelAdmin() {
                           </button>
                         </div>
 
-                        {/* galeria embutida */}
                         {aberto && (
                           <div style={{ marginTop: 10 }}>
                             {loadingFotos[id] ? (
@@ -420,6 +507,101 @@ function PainelAdmin() {
           </div>
         </>
       )}
+
+      {/* ====== Caixa: LEADS (nova) ====== */}
+      <section style={styles.card}>
+        <div style={styles.cardHeader}>
+          <h2 style={styles.h2}>Leads (captação)</h2>
+          <div style={styles.leadActions}>
+            <input
+              placeholder="Buscar nome, e-mail, telefone, cidade…"
+              value={qLead}
+              onChange={(e) => setQLead(e.target.value)}
+              style={styles.inp}
+            />
+            <select value={ufLead} onChange={(e) => setUfLead(e.target.value.toUpperCase())} style={styles.inp}>
+              <option value="">UF</option>
+              {[
+                "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
+                "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO",
+              ].map((u) => <option key={u} value={u}>{u}</option>)}
+            </select>
+            <select value={interesseLead} onChange={(e) => setInteresseLead(e.target.value)} style={styles.inp}>
+              <option value="">Interesse</option>
+              {INTERESSES.map((i) => <option key={i} value={i}>{i}</option>)}
+            </select>
+            <button onClick={baixarCSV} style={styles.btnOk}>Exportar CSV</button>
+          </div>
+        </div>
+
+        <div style={styles.tableWrap}>
+          {leadsLoading ? (
+            <div style={styles.muted}>Carregando leads…</div>
+          ) : (
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Data</th>
+                  <th style={styles.th}>Nome</th>
+                  <th style={styles.th}>Contato</th>
+                  <th style={styles.th}>Interesse</th>
+                  <th style={styles.th}>UF</th>
+                  <th style={styles.th}>Cidade</th>
+                  <th style={styles.th}>Origem</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leadsFiltrados.length === 0 ? (
+                  <tr><td colSpan={7} style={{ ...styles.td, textAlign: "center", opacity: 0.7 }}>Sem leads neste filtro.</td></tr>
+                ) : (
+                  leadsFiltrados.map((l) => (
+                    <tr key={l._id}>
+                      <td style={styles.td}>{toBRDate(l.createdAt)}</td>
+                      <td style={styles.td}>{l.nome || "-"}</td>
+                      <td style={styles.td}>
+                        {l.email ? <div>{l.email}</div> : null}
+                        {l.telefone ? <div>+55 {l.telefone}</div> : null}
+                      </td>
+                      <td style={styles.td}>{l.interesse || "-"}</td>
+                      <td style={styles.td}>{(l.estado || "").toUpperCase()}</td>
+                      <td style={styles.td}>{l.cidade || "-"}</td>
+                      <td style={styles.td}>{l.origem || "-"}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Paginação Leads */}
+        <div style={styles.pager}>
+          <button
+            onClick={() => carregarLeads(Math.max(1, leadsPage - 1), leadsLimit)}
+            disabled={leadsLoading || leadsPage <= 1}
+            style={styles.btnLight}
+          >
+            ◀ Anterior
+          </button>
+          <span style={styles.muted}>
+            Página {leadsPage} de {totalPaginasLeads} · {leadsTotal} leads
+          </span>
+          <button
+            onClick={() => carregarLeads(Math.min(totalPaginasLeads, leadsPage + 1), leadsLimit)}
+            disabled={leadsLoading || leadsPage >= totalPaginasLeads}
+            style={styles.btnLight}
+          >
+            Próxima ▶
+          </button>
+          <select
+            value={leadsLimit}
+            onChange={(e) => carregarLeads(1, parseInt(e.target.value, 10))}
+            style={styles.inp}
+          >
+            {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n}/página</option>)}
+          </select>
+        </div>
+      </section>
     </div>
   );
 }
@@ -433,7 +615,7 @@ const styles = {
   skeleton: { padding: 16, background: "#fff", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,.06)" },
   muted: { opacity: .8, padding: 8 },
   card: { background: "#fff", borderRadius: 10, padding: 12, marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,.06)" },
-  cardHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
+  cardHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 8 },
   meta: { display: "flex", gap: 12, flexWrap: "wrap", color: "#444", marginTop: 4, fontSize: 13 },
   grid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
   item: { display: "flex", gap: 10, padding: 8, border: "1px solid #eee", borderRadius: 8, background: "#fafafa" },
@@ -447,25 +629,25 @@ const styles = {
   badgeWarn: { fontSize: 12, padding: "2px 8px", background: "#fff7e6", borderRadius: 999, color: "#9a6b00" },
   badgeDanger: { fontSize: 12, padding: "2px 8px", background: "#fdeaea", borderRadius: 999, color: "#a32020" },
   badgeInfo: { fontSize: 12, padding: "2px 8px", background: "#e9f6ff", borderRadius: 999, color: "#0a6aa6" },
-  btnOk: { background: "#28a745", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 6, cursor: "pointer" },
+  btnOk: { background: "#28a745", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" },
   btnWarn: { background: "#ffc107", color: "#000", border: "none", padding: "6px 10px", borderRadius: 6, cursor: "pointer" },
   btnDanger: { background: "#dc3545", color: "#fff", border: "none", padding: "8px 12px", borderRadius: 6, cursor: "pointer" },
   btnDangerSm: { background: "#dc3545", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" },
   btnLight: { background: "#fff", border: "1px solid #ddd", padding: "6px 10px", borderRadius: 6, cursor: "pointer" },
 
   // galeria
-  gridFotos: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-    gap: 8,
-  },
-  foto: {
-    width: "100%",
-    height: 100,
-    objectFit: "cover",
-    borderRadius: 6,
-    background: "#eaeaea",
-  },
+  gridFotos: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 8 },
+  foto: { width: "100%", height: 100, objectFit: "cover", borderRadius: 6, background: "#eaeaea" },
+
+  // leads
+  leadActions: { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" },
+  inp: { background: "#fff", border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", minWidth: 160 },
+  tableWrap: { width: "100%", overflowX: "auto" },
+  table: { width: "100%", borderCollapse: "collapse", minWidth: 780 },
+  th: { textAlign: "left", padding: "10px", fontWeight: 700, background: "#f3f5f8", borderBottom: "1px solid #e6e9ef", fontSize: 14, whiteSpace: "nowrap" },
+  td: { padding: "10px", borderBottom: "1px solid #eee", fontSize: 14, verticalAlign: "top" },
+  pager: { display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between", marginTop: 12, flexWrap: "wrap" },
 };
 
 export default PainelAdmin;
+
