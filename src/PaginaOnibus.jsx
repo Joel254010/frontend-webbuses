@@ -65,6 +65,13 @@ function getKmLabelFrom(obj = {}) {
   );
 }
 
+// 🔢 Normaliza telefone e garante DDI 55 (Brasil)
+function normalizePhone(phoneRaw = "") {
+  const digits = String(phoneRaw || "").replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.startsWith("55") ? digits : `55${digits}`;
+}
+
 export default function PaginaOnibus() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -155,14 +162,16 @@ export default function PaginaOnibus() {
     );
   }
 
-  // WhatsApp / modelo
-  const telefoneBruto = String(onibus?.telefoneBruto || "").replace(/\D/g, "");
-  const modelo = `${onibus?.fabricanteCarroceria || ""} ${onibus?.modeloCarroceria || ""}`.trim();
-  const mensagem = `Olá! Gostaria de maiores informações sobre o ônibus ${modelo} anunciado no Web Buses.`;
-  const linkWhatsapp =
-    telefoneBruto.length >= 10
-      ? `https://wa.me/55${telefoneBruto}?text=${encodeURIComponent(mensagem)}`
-      : null;
+  // 🔗 Link de compartilhamento idêntico ao "Copiar link" do Home
+  const shareUrl = `https://backend-webbuses.onrender.com/preview/${id}`;
+
+  // WhatsApp: usa o MESMO link do "copiar", sem título/texto extra
+  const numero = normalizePhone(
+    onibus?.whatsapp || onibus?.telefoneBruto || onibus?.telefone || onibus?.contato?.whatsapp || ""
+  );
+  const linkWhatsapp = numero
+    ? `https://wa.me/${numero}?text=${encodeURIComponent(shareUrl)}`
+    : null; // mantém "indisponível" se não houver número (igual ao seu layout)
 
   return (
     <div className="pagina-onibus">
